@@ -1,0 +1,306 @@
+/*
+  The shell's design layer.
+
+  ── Why this file exists at all ─────────────────────────────────────────────
+
+  Each module ships its own `ui/theme.css`, and each one redefines the SAME
+  core tokens with different values - M13 sets `--color-canvas` to a warm
+  92-hue, M15 to a cool 264-hue, and both define `.panel`, `.provenance` and
+  `.skeleton`. Importing four of those into one document does not merge them:
+  the last stylesheet to load wins, globally, and three modules silently render
+  in a fourth module's palette. That is already tracked as platform debt
+  ("Design tokens dual-defined ... whichever stylesheet loads last wins"), and
+  the shell is where it stops being theoretical.
+
+  So the shell imports NONE of them and owns the palette outright. Because
+  every module styles itself with token-backed utilities - `bg-surface`,
+  `text-ink`, `border-line`, `rounded-panel` - changing a value here restyles
+  all four modules at once, with no edit inside any of them.
+
+  ── What changed, and why ───────────────────────────────────────────────────
+
+  The inherited palette was built for a document with citations and it read as
+  a photocopy of one: canvas and surface within 2% lightness of each other,
+  hairlines at 92% so panels had no edge, `--shadow-card: none`, and a brand at
+  0.17 chroma that never appeared at full strength anywhere on screen. Every
+  surface was the same near-white, so nothing had a foreground.
+
+  This keeps the thesis - it is still an evidence tool, colour is still
+  reserved almost entirely for verification state - and fixes the execution:
+
+    · canvas drops away from surface, so white panels sit ON something
+    · hairlines get 3% darker and gain a real second weight
+    · panels get elevation back; a border alone was not separating anything
+    · the brand gains chroma and is allowed to be a filled surface, not just
+      a text colour
+    · the rail is a deep indigo rather than a neutral charcoal, so the one
+      persistent piece of chrome has a temperature
+
+  What is NOT negotiable and is inherited untouched: the verification palette
+  (confirmed / reported / contested / company) and the mastery ramp. Those are
+  platform contracts about what a sourced fact and an untested skill look like,
+  and nineteen repos re-picking those greens is exactly how "every fact shows
+  its source" quietly stops meaning one thing.
+*/
+
+@import "@ai/core/styles.css";
+
+/*
+  Tailwind v4 auto-detects sources from the importing project only, and every
+  module lives in a sibling repository. Without these the shell renders
+  structurally correct and visually collapsed - the exact failure core's own
+  stylesheet documents for node_modules.
+*/
+@source "../../resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src";
+@source "../../jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src";
+@source "../../Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src";
+@source "../../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src";
+
+@theme {
+  /* ── type ───────────────────────────────────────────────────────────────
+     A real modular scale with negative tracking on the large sizes. The
+     display size exists because the first line of a page should read like a
+     headline rather than a slightly bigger card title. */
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.06;
+  --text-display--letter-spacing: -0.032em;
+
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.16;
+  --text-title--letter-spacing: -0.022em;
+
+  --text-section: 1.0625rem;
+  --text-section--line-height: 1.35;
+  --text-section--letter-spacing: -0.012em;
+
+  /* M13's transcript. The answer is read, not scanned. */
+  --text-answer: 1.1875rem;
+  --text-answer--line-height: 1.75;
+  --text-answer--letter-spacing: -0.003em;
+
+  /* ── surfaces ───────────────────────────────────────────────────────────
+     The point of the change: canvas is far enough below surface that a panel
+     is legible as a raised object rather than as a rectangle of the same
+     colour with a faint outline. */
+  --color-canvas: oklch(0.964 0.005 266);
+  --color-surface: oklch(1 0 0);
+  --color-surface-sunken: oklch(0.947 0.007 266);
+  --color-line: oklch(0.893 0.009 266);
+  --color-line-strong: oklch(0.808 0.014 266);
+
+  --color-ink: oklch(0.175 0.021 266);
+  --color-ink-soft: oklch(0.435 0.019 266);
+  --color-ink-faint: oklch(0.575 0.016 266);
+
+  /* ── brand ──────────────────────────────────────────────────────────────
+     Enough chroma to survive being a 32px filled square in a dark rail, and
+     dark enough to hold white text at AA. */
+  --color-brand: oklch(0.545 0.225 273);
+  --color-brand-hover: oklch(0.478 0.232 273);
+  --color-brand-soft: oklch(0.955 0.038 273);
+  --color-brand-line: oklch(0.825 0.095 273);
+
+  /* ── the rail ───────────────────────────────────────────────────────────
+     Deep indigo rather than neutral charcoal. It is the only chrome that is
+     always on screen, and a grey column beside a grey page is what made the
+     old layout read as unfinished. */
+  --color-rail: oklch(0.208 0.032 269);
+  --color-rail-line: oklch(0.288 0.034 269);
+  --color-rail-ink: oklch(0.955 0.007 269);
+  --color-rail-ink-soft: oklch(0.702 0.024 269);
+
+  /* ── depth ──────────────────────────────────────────────────────────────
+     Small, tight, and actually present. `--shadow-card: none` is what made
+     every panel sit flat in the page. */
+  --shadow-card:
+    0 1px 2px oklch(0.175 0.021 266 / 0.05), 0 1px 3px oklch(0.175 0.021 266 / 0.04);
+  --shadow-raised:
+    0 2px 4px oklch(0.175 0.021 266 / 0.06), 0 14px 36px -12px oklch(0.175 0.021 266 / 0.22);
+  --shadow-glow: 0 2px 12px -2px oklch(0.545 0.225 273 / 0.5);
+
+  --radius-panel: 0.75rem;
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* ── M13's evidence marks ───────────────────────────────────────────────
+     Module-invented and load-bearing: the highlight IS that module's
+     argument, so it keeps its own green rather than borrowing the brand. */
+  --color-quote: oklch(0.948 0.062 156);
+  --color-quote-line: oklch(0.63 0.15 156);
+  --color-quote-active: oklch(0.902 0.1 156);
+
+  --color-blocked: oklch(0.951 0.034 25);
+  --color-blocked-line: oklch(0.72 0.11 25);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  /* Dark mode. Tokens are redefined; nothing else in the app knows. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --color-canvas: oklch(0.168 0.017 266);
+    --color-surface: oklch(0.212 0.019 266);
+    --color-surface-sunken: oklch(0.188 0.018 266);
+    --color-line: oklch(0.298 0.019 266);
+    --color-line-strong: oklch(0.402 0.022 266);
+
+    /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
+       the brightest thing on a dark screen. */
+    --color-rail: oklch(0.138 0.019 269);
+    --color-rail-line: oklch(0.252 0.021 269);
+
+    --color-ink: oklch(0.945 0.006 266);
+    --color-ink-soft: oklch(0.742 0.014 266);
+    --color-ink-faint: oklch(0.6 0.016 266);
+
+    --color-brand: oklch(0.7 0.175 275);
+    --color-brand-hover: oklch(0.775 0.16 275);
+    --color-brand-soft: oklch(0.268 0.072 275);
+    --color-brand-line: oklch(0.392 0.1 275);
+
+    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.34);
+    --shadow-raised: 0 2px 6px oklch(0 0 0 / 0.4), 0 18px 44px -14px oklch(0 0 0 / 0.6);
+    --shadow-glow: 0 2px 14px -2px oklch(0.7 0.175 275 / 0.45);
+
+    --color-quote: oklch(0.272 0.055 156);
+    --color-quote-line: oklch(0.66 0.14 156);
+    --color-quote-active: oklch(0.342 0.078 156);
+
+    --color-blocked: oklch(0.272 0.052 25);
+    --color-blocked-line: oklch(0.62 0.13 25);
+
+    /* The verification palette keeps its MEANING and gains contrast. Colour is
+       never the only signal - every state also carries a text label - but a
+       green that reads as grey on a dark surface fails the students who rely
+       on the fast scan. */
+    --color-confirmed: oklch(0.772 0.152 156);
+    --color-confirmed-soft: oklch(0.262 0.052 156);
+    --color-confirmed-line: oklch(0.382 0.082 156);
+
+    --color-reported: oklch(0.792 0.142 76);
+    --color-reported-soft: oklch(0.272 0.052 76);
+    --color-reported-line: oklch(0.402 0.082 76);
+
+    --color-contested: oklch(0.742 0.162 25);
+    --color-contested-soft: oklch(0.272 0.062 25);
+    --color-contested-line: oklch(0.402 0.092 25);
+
+    --color-company: oklch(0.762 0.132 303);
+    --color-company-soft: oklch(0.262 0.052 303);
+    --color-company-line: oklch(0.392 0.072 303);
+
+    --color-mastery-weak: oklch(0.755 0.145 66);
+    --color-mastery-ok: oklch(0.72 0.13 156);
+    --color-mastery-strong: oklch(0.79 0.15 156);
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-size: 0.9375rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Every figure in this product is compared against another figure: report
+     counts, ages, percentages, offsets, round durations. Proportional digits
+     make columns of them jitter. */
+  table,
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The rail is a dark surface inside a light document; its scrollbar should
+     not arrive as a bright stripe. */
+  aside {
+    scrollbar-width: thin;
+  }
+}
+
+@layer components {
+  /*
+    The provenance mark. Dates, counts, sources, offsets and checksums are set
+    in mono at a small size wherever they appear, so "where did this come from"
+    is recognisable by SHAPE before it is read. Declared once here rather than
+    in each module, so the shell has exactly one definition instead of
+    whichever copy happened to load last.
+  */
+  .provenance {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: -0.01em;
+    color: var(--color-ink-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rule-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* A panel is a raised surface now, not an outlined rectangle. */
+  .panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-card);
+  }
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-surface-sunken) 25%,
+      var(--color-line) 37%,
+      var(--color-surface-sunken) 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+    border-radius: 6px;
+  }
+
+  @keyframes skeleton-sweep {
+    0% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0 50%;
+    }
+  }
+
+  /*
+    M13's evidence highlight. A tint plus an underline, never a solid block:
+    the text under it has to stay comfortably readable, because reading it is
+    the entire point.
+  */
+  .quote-mark {
+    background: var(--color-quote);
+    box-shadow: inset 0 -2px 0 var(--color-quote-line);
+    border-radius: 3px;
+    padding: 0.05em 0.05em;
+    transition: background 140ms var(--ease-out-soft);
+  }
+
+  .quote-mark-active {
+    background: var(--color-quote-active);
+    box-shadow: inset 0 -2px 0 var(--color-quote-line);
+  }
+
+  /*
+    A neutralised passage. Struck AND labelled AND tinted - three signals,
+    because "we ignored this part of your answer" is a claim that has to
+    survive a monochrome screen and a screen reader.
+  */
+  .blocked-mark {
+    background: var(--color-blocked);
+    box-shadow: inset 0 -2px 0 var(--color-blocked-line);
+    text-decoration: line-through;
+    text-decoration-color: var(--color-blocked-line);
+    border-radius: 3px;
+  }
+}

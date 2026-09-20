@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@ai/core": ["../Platform_Core/src/index.ts"],
+      "@ai/m01": ["../resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src/index.ts"],
+      "@ai/m02": ["../jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"],
+      "@ai/m06": ["../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"],
+      "@ai/m13": ["../Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"],
+      "@ai/m15": ["../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

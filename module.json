@@ -1,0 +1,31 @@
+{
+  "module": "SHELL",
+  "name": "Platform Shell",
+  "spec": "PORTS.txt (PRIMARY: 5173 - frontend shell, all modules)",
+  "repo": "https://github.com/MNEMOS-PREP/Platform_Shell",
+  "owner": "E3",
+  "phase": "1",
+  "ports": {
+    "frontend": 5173
+  },
+  "core": {
+    "repo": "https://github.com/MNEMOS-PREP/Platform_Core",
+    "version": "v0.6.0"
+  },
+
+  "_comment_depends_on": [
+    "The shell mounts module UIs from source and proxies to module APIs, so an",
+    "absent module is a stage that does not render rather than a broken page.",
+    "Unlike a module's upstreams these are also BUILD inputs: a repo missing",
+    "from disk fails the import, not just a request. Listed so start.bat can",
+    "bring them up and so the failure names itself."
+  ],
+  "depends_on": [
+    { "module": "M01", "name": "Resume Ingestion", "repo": "https://github.com/MNEMOS-PREP/resume-ingestion", "base_url": "http://127.0.0.1:8101", "health_path": "/health", "required": true, "reason": "the /resume and /resumes/:id screens", "on_missing": "Resume - needs M01. The stage is listed on the overview and does not open." },
+    { "module": "M02", "name": "JD Parser & Coverage Planner", "repo": "https://github.com/MNEMOS-PREP/jd-parser-coverage", "base_url": "http://127.0.0.1:8102", "health_path": "/health", "required": true, "reason": "the /jd and /jds/:id screens", "on_missing": "Job description - needs M02. The stage is listed on the overview and does not open." },
+    { "module": "M04", "name": "Skill Graph & MNEMOS Memory", "repo": "https://github.com/MNEMOS-PREP/Memory", "base_url": "http://127.0.0.1:8104", "health_path": "/health", "required": false, "reason": "concept resolution behind M01 and M02, theta behind M15", "on_missing": "Skill graph - needs M04. Other modules degrade individually and each says so." },
+    { "module": "M05", "name": "Question Intelligence", "repo": "https://github.com/MNEMOS-PREP/Question_Intelligence", "base_url": "http://127.0.0.1:8105", "health_path": "/health", "required": false, "reason": "bank health on the overview; no UI of its own", "on_missing": "Question selection - needs M05. It has no screen either way." },
+    { "module": "M13", "name": "Evaluation Engine", "repo": "https://github.com/MNEMOS-PREP/Evaluation_Engine", "base_url": "http://127.0.0.1:8113", "health_path": "/health", "required": true, "reason": "the /score, /turns, /rubrics, /calibration, /disputes screens", "on_missing": "Evaluation - needs M13. The stage is listed on the overview and does not open." },
+    { "module": "M15", "name": "Company Guider", "repo": "https://github.com/MNEMOS-PREP/Company_Guider", "base_url": "http://127.0.0.1:8115", "health_path": "/health", "required": true, "reason": "the /companies screens", "on_missing": "Company prep - needs M15. The stage is listed on the overview and does not open." }
+  ]
+}
