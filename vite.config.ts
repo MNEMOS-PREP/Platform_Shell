@@ -54,7 +54,19 @@ const MODULE_SRC: Record<string, string> = {
  */
 const OWNER: Record<string, Mod> = {
   resumes: "m01",
+  /*
+    M02 owns five nouns, and until 2026-10-02 this table knew one. `doors`,
+    `archetypes` and `performance` were served by M02 and routed by nobody;
+    the company picker sat under `companies` (M15's) and the coverage ledger
+    under `sessions` (M05's), so the shell answered both from the wrong
+    backend. M02 moved them to `doors/companies` and `coverage`, and its own
+    suite now reads this table to keep the two in step.
+  */
+  archetypes: "m02",
+  coverage: "m02",
+  doors: "m02",
   jds: "m02",
+  performance: "m02",
   candidates: "m04",
   concepts: "m04",
   "skill-graph": "m04",
