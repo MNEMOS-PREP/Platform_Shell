@@ -24,8 +24,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
+import { ROLE_LABEL, signOut, useSession } from "@ai/core";
 import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
 
 export interface FrameNavItem {
@@ -59,6 +60,59 @@ function ThemeToggle() {
         {theme === "dark" ? "☀" : "☾"}
       </span>
     </button>
+  );
+}
+
+/**
+ * Who is signed in, always visible. A demo switches people mid-flow, and a
+ * screen that silently answers as somebody else is the confusion this stops.
+ */
+function SessionChip({ compact = false }: { compact?: boolean }) {
+  const session = useSession();
+  const navigate = useNavigate();
+  const location = useLocation();
+  if (!session) return null;
+  const label = session.name ?? ROLE_LABEL[session.role];
+
+  if (compact) {
+    return (
+      <Link
+        to="/signin"
+        state={{ from: location.pathname }}
+        className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft"
+      >
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="mt-auto border-t border-rail-line px-4 py-3">
+      <p className="text-[0.6875rem] uppercase tracking-wide text-rail-ink-soft">Signed in as</p>
+      <p className="mt-1 truncate text-sm font-semibold text-rail-ink">{label}</p>
+      <p className="provenance mt-0.5 truncate text-rail-ink-soft">
+        {ROLE_LABEL[session.role]} · {session.subject.slice(0, 8)}
+      </p>
+      <div className="mt-2.5 flex gap-3 text-xs">
+        <Link
+          to="/signin"
+          state={{ from: location.pathname }}
+          className="text-rail-ink-soft underline-offset-2 hover:text-rail-ink hover:underline"
+        >
+          Switch
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            signOut();
+            navigate("/signin");
+          }}
+          className="text-rail-ink-soft underline-offset-2 hover:text-rail-ink hover:underline"
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -196,7 +250,8 @@ export function Frame({ nav, children }: { nav: FrameNavItem[]; children: ReactN
             </nav>
           )}
 
-          <p className="provenance mt-auto border-t border-rail-line px-4 py-3 text-rail-ink-soft">
+          <SessionChip />
+          <p className="provenance border-t border-rail-line px-4 py-3 text-rail-ink-soft">
             Every fact shows its source
           </p>
         </aside>
@@ -215,7 +270,8 @@ export function Frame({ nav, children }: { nav: FrameNavItem[]; children: ReactN
                 </span>
                 <span className="text-sm font-semibold text-ink">AI Interviewer</span>
               </Link>
-              <span className="ml-auto">
+              <span className="ml-auto flex items-center gap-2">
+                <SessionChip compact />
                 <ThemeToggle />
               </span>
             </div>

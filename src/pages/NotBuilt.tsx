@@ -11,7 +11,7 @@ import { EmptyState } from "@ai/core";
 export function NotBuilt({ id, name }: { id: string; name: string }) {
   return (
     <div className="mx-auto max-w-3xl py-12">
-      <EmptyState icon="🧱" title={`${id} — ${name} is not built yet`}>
+      <EmptyState icon="layers" title={`${id} — ${name} is not built yet`}>
         <p className="text-sm text-ink-soft">
           Specified in{" "}
           <code className="rounded bg-surface-sunken px-1 py-0.5 font-mono text-xs">

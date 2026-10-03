@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "types": ["vite/client"],
     "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
       "@ai/core": ["../Platform_Core/src/index.ts"],
       "@ai/m01": ["../resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src/index.ts"],
       "@ai/m02": ["../jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"],

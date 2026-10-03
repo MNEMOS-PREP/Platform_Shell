@@ -13,7 +13,7 @@ start.bat check      report what is on disk and listening, launch nothing
 Then open the **last tab, titled HOME**, and click the one link on it:
 **http://localhost:5173**
 
-Six modules contribute twelve tabs between service panes and control panes, and
+Seven modules contribute fourteen tabs between service panes and control panes, and
 Windows Terminal truncates their titles to about four characters — the window
 fills with `cont`, `m15`, `C:\W` and nothing says where the product is. So the
 shell gets its own tab, opened last so it is rightmost, and that tab shows one
@@ -43,7 +43,7 @@ publish or reinstall in between.
 
 ## The three things that make one origin work
 
-**1 · The `/v1` nouns are disjoint.** Verified against all six running
+**1 · The `/v1` nouns are disjoint.** Verified against all seven running
 `openapi.json` documents. `/v1/companies` can only be M15 and `/v1/rubrics` can
 only be M13, so a proxy table routed by noun stands in for the `:8000` gateway
 until it exists. The table lives in `vite.config.ts`; a new top-level noun goes
@@ -74,7 +74,7 @@ are handled:
 | Collision | Resolution |
 |---|---|
 | M01 and M02 both claim the index route | The shell owns `/`. Their entry screens mount by name at `/resume` and `/jd`; both modules export the components for exactly this, and their standalone builds still route through `m01Routes` / `m02Routes`. |
-| All four claim `/deps` | Only M13's mounts. The shell's `/system` page reads all six modules at once through `/sys/<mod>/v1/deps` — the view no single module can render. |
+| All four claim `/deps` | Only M13's mounts. The shell's `/system` page reads all seven modules at once through `/sys/<mod>/v1/deps` — the view no single module can render. |
 
 ---
 

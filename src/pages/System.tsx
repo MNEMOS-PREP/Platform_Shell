@@ -61,7 +61,7 @@ export function System() {
       <header className="border-b border-line pb-7">
         <p className="rule-label">System</p>
         <h1 className="mt-2.5 text-title font-semibold text-ink">
-          Six services, and what each one needs
+          {BACKENDS.length} services, and what each one needs
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-soft">
           Live, refreshed every fifteen seconds. An upstream marked unavailable is not an

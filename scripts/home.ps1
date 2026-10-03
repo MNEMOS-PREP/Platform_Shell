@@ -3,7 +3,7 @@
 
     This is the tab you look at. It runs the shell dev server and shows one
     card with one link, and it is opened LAST so it is the rightmost tab in the
-    window - the modules have six service tabs and six control tabs between
+    window - the modules have seven service tabs and seven control tabs between
     them, all titled things like "cont" and "m15" once Windows Terminal has
     truncated them, and none of that tells you where the product is.
 
@@ -33,14 +33,9 @@ try { $Host.UI.RawUI.WindowTitle = 'HOME' } catch { }
 $root     = Split-Path -Parent $PSScriptRoot
 $shellUrl = 'http://localhost:5173'
 
-$modules = @(
-    @{ Id = 'M01'; Label = 'Resume';      Port = 8101 },
-    @{ Id = 'M02'; Label = 'JD';          Port = 8102 },
-    @{ Id = 'M04'; Label = 'Skill Graph'; Port = 8104 },
-    @{ Id = 'M05'; Label = 'Questions';   Port = 8105 },
-    @{ Id = 'M13'; Label = 'Evaluation';  Port = 8113 },
-    @{ Id = 'M15'; Label = 'Companies';   Port = 8115 }
-)
+# From module.json, through modules.ps1 - the same list start.bat uses.
+. (Join-Path $PSScriptRoot 'modules.ps1')
+$modules = @(Get-PlatformModules -Root $root)
 
 function Test-Port {
     param([int] $Port)

@@ -12,15 +12,15 @@
       1. M04 is the root of the dependency graph, so it goes first and every
          module that probes it on startup finds it healthy.
 
-      2. The shell tab is opened LAST, deliberately. Six modules contribute
-         twelve tabs between service panes and control panes, and Windows
+      2. The shell tab is opened LAST, deliberately. Seven modules contribute
+         fourteen tabs between service panes and control panes, and Windows
          Terminal truncates their titles to about four characters - so the
          window fills with "cont", "m15", "C:\W" and nothing says where the
          product actually is. Opening HOME last makes it the rightmost tab,
          and it is the only tab you need.
 
     The shell runs in its own tab rather than in this window because this
-    window is where six launchers just printed eighty lines. See home.ps1.
+    window is where seven launchers just printed eighty lines. See home.ps1.
 
     ASCII only and CRLF, deliberately: cmd.exe seeks batch files by byte
     offset, and an LF-only file carrying one multi-byte character desyncs the
@@ -51,17 +51,11 @@ $shellUrl = 'http://localhost:5173'
 # "last tab" stops meaning anything.
 $windowName = 'ai-interviewer'
 
-# Folder beside this one, and the launcher inside it. The folder name must
-# equal the repo name in module.json - a mismatch is why start_all.bat has
-# silently skipped a running module before.
-$modules = @(
-    @{ Id = 'M04'; Label = 'Skill Graph'; Folder = 'Memory';                Bat = 'start_graph.bat';     Port = 8104 },
-    @{ Id = 'M05'; Label = 'Questions';   Folder = 'Question_Intelligence'; Bat = 'start_questions.bat'; Port = 8105 },
-    @{ Id = 'M13'; Label = 'Evaluation';  Folder = 'Evaluation_Engine';     Bat = 'start_eval.bat';      Port = 8113 },
-    @{ Id = 'M01'; Label = 'Resume';      Folder = 'resume-ingestion';      Bat = 'start_resume.bat';    Port = 8101 },
-    @{ Id = 'M02'; Label = 'JD';          Folder = 'jd-parser-coverage';    Bat = 'start_jd.bat';        Port = 8102 },
-    @{ Id = 'M15'; Label = 'Companies';   Folder = 'Company_Guider';        Bat = 'start_company.bat';   Port = 8115 }
-)
+# Every module, its folder beside this one, its port and its launcher -
+# from module.json, through modules.ps1. Two hand-kept copies of this list
+# both missed M06 until 2026-10-03.
+. (Join-Path $PSScriptRoot 'modules.ps1')
+$modules = @(Get-PlatformModules -Root $root)
 
 function Test-Port {
     param([int] $Port)

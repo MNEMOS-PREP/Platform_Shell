@@ -30,12 +30,12 @@
  *     page reads every module at once, which is the view that is actually
  *     worth having and that no single module can render.
  */
-import { StrictMode } from "react";
+import { StrictMode, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { MODULES } from "@ai/core";
+import { MODULES, isStaff, useSession } from "@ai/core";
 import { IngestPage, ResumePage } from "@ai/m01";
 import { JdPage, ParsePage } from "@ai/m02";
 import { m06Routes } from "@ai/m06";
@@ -45,6 +45,7 @@ import { m15Routes } from "@ai/m15";
 import { Frame, type FrameNavItem } from "./ui/Frame";
 import { Home } from "./pages/Home";
 import { NotBuilt } from "./pages/NotBuilt";
+import { SignIn } from "./pages/SignIn";
 import { System } from "./pages/System";
 // One stylesheet, one token set. See theme.css for why none of the module
 // theme files are imported here.
@@ -66,6 +67,22 @@ const NAV: FrameNavItem[] = [
   { to: "/system", label: "System", glyph: "○" },
 ];
 
+/*
+  Staff screens, listed only for the roles the backends let in
+  (`require_role`, Platform_Core v0.12.0). The routes themselves stay mounted
+  for everyone: a student who follows a link gets the module's sentence about
+  what the page is, and the backend's 403, rather than a 404.
+*/
+const PLACEMENT_NAV: FrameNavItem[] = [
+  { to: "/review", label: "Review queue", glyph: "✓" },
+  { to: "/ops", label: "Operations", glyph: "⚙" },
+];
+const ADMIN_NAV: FrameNavItem[] = [
+  { to: "/disputes", label: "Disputes", glyph: "⚑" },
+  { to: "/raters", label: "Raters", glyph: "≡" },
+  { to: "/outbox", label: "Evaluation outbox", glyph: "⇢" },
+];
+
 /**
  * Modules with no UI yet get a named placeholder rather than a dead link.
  * Derived by subtraction from core's registry, because the registry's own
@@ -80,39 +97,72 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * The routes, as whoever is signed in.
+ *
+ * Signed out, every address shows the sign-in screen and remembers where it
+ * was headed. Switching people clears the query cache and remounts every
+ * screen (the `key`): the previous person's answers are never shown to the
+ * next one, even for the second it takes a refetch to land.
+ */
+function App() {
+  const session = useSession();
+  const location = useLocation();
+  const who = session ? `${session.role}:${session.subject}` : "";
+  const previous = useRef(who);
+
+  useEffect(() => {
+    if (previous.current !== who) {
+      previous.current = who;
+      queryClient.clear();
+    }
+  }, [who]);
+
+  if (!session && location.pathname !== "/signin") {
+    return <Navigate to="/signin" replace state={{ from: location.pathname }} />;
+  }
+
+  const nav = [
+    ...NAV,
+    ...(isStaff(session) ? PLACEMENT_NAV : []),
+    ...(session?.role === "admin" ? ADMIN_NAV : []),
+  ];
+
+  return (
+    <Frame nav={nav}>
+      <Routes key={who}>
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/system" element={<System />} />
+
+        {/* M01 — entry screen by name, the rest of the tree as authored. */}
+        <Route path="/resume" element={<IngestPage />} />
+        <Route path="/resumes/:resumeId" element={<ResumePage />} />
+
+        {/* M02 — same shape. */}
+        <Route path="/jd" element={<ParsePage />} />
+        <Route path="/jds/:jdId" element={<JdPage />} />
+
+        {/* M06, M13 and M15 mount whole: no index route, no collision. */}
+        {m06Routes}
+        {m13Routes}
+        {m15Routes}
+
+        {PLACEHOLDERS.map((m) => (
+          <Route key={m.id} path={m.path} element={<NotBuilt id={m.id} name={m.name} />} />
+        ))}
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Frame>
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Frame nav={NAV}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/system" element={<System />} />
-
-            {/* M01 — entry screen by name, the rest of the tree as authored. */}
-            <Route path="/resume" element={<IngestPage />} />
-            <Route path="/resumes/:resumeId" element={<ResumePage />} />
-
-            {/* M02 — same shape. */}
-            <Route path="/jd" element={<ParsePage />} />
-            <Route path="/jds/:jdId" element={<JdPage />} />
-
-            {/* M06, M13 and M15 mount whole: no index route, no collision. */}
-            {m06Routes}
-            {m13Routes}
-            {m15Routes}
-
-            {PLACEHOLDERS.map((m) => (
-              <Route
-                key={m.id}
-                path={m.path}
-                element={<NotBuilt id={m.id} name={m.name} />}
-              />
-            ))}
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Frame>
+        <App />
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
