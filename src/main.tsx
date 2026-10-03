@@ -30,23 +30,29 @@
  *     page reads every module at once, which is the view that is actually
  *     worth having and that no single module can render.
  */
-import { Component, StrictMode, useEffect, useRef, type ErrorInfo, type ReactNode } from "react";
+import { Component, StrictMode, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { MODULES, isStaff, useSession } from "@ai/core";
+import { MODULES, candidateIdOf, isStaff, useSession } from "@ai/core";
 import { IngestPage, ResumePage } from "@ai/m01";
 import { JdPage, ParsePage } from "@ai/m02";
-import { m04Routes } from "@ai/m04";
-import { m06Routes } from "@ai/m06";
+import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
+import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
+import { Answers } from "./pages/Answers";
+import { Help } from "./pages/Help";
+import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { NotBuilt } from "./pages/NotBuilt";
+import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
+import { Welcome } from "./pages/Welcome";
+import { countdownLabel, daysUntil } from "./lib/goals";
 import { initTheme } from "./lib/theme";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
@@ -67,7 +73,7 @@ const NAV: FrameNavGroup[] = [
   {
     label: "Prepare",
     items: [
-      { to: "/", label: "Overview", icon: "compass" },
+      { to: "/", label: "Today", icon: "compass" },
       { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
       { to: "/jd", label: "Job description", icon: "listChecks", match: "/jds" },
       { to: "/companies", label: "Companies", icon: "building" },
@@ -77,8 +83,11 @@ const NAV: FrameNavGroup[] = [
     label: "Practise",
     items: [
       { to: "/mock", label: "Mock interview", icon: "mic" },
-      { to: "/score", label: "Evaluation", icon: "target", match: "/turns" },
+      // A student's "evaluation" is their own marked answers (2026-10-04).
+      // M13's bench, which this used to open, is a staff tool now.
+      { to: "/answers", label: "My answers", icon: "target", match: "/turns" },
       { to: "/skills", label: "Skill graph", icon: "graph" },
+      { to: "/history", label: "History", icon: "clock" },
     ],
   },
 ];
@@ -92,13 +101,31 @@ const NAV: FrameNavGroup[] = [
 const PLACEMENT_NAV: FrameNavItem[] = [
   { to: "/review", label: "Review queue", icon: "shield" },
   { to: "/ops", label: "Operations", icon: "zap" },
+  { to: "/score", label: "Evaluation bench", icon: "scales" },
 ];
 const ADMIN_NAV: FrameNavItem[] = [
   { to: "/disputes", label: "Disputes", icon: "scales" },
   { to: "/raters", label: "Raters", icon: "users" },
   { to: "/outbox", label: "Evaluation outbox", icon: "send" },
 ];
+/* Staff only (2026-10-04): module health is the operator's view, and in a
+   student's menu it read as the platform showing its wiring. */
 const PLATFORM_NAV: FrameNavItem[] = [{ to: "/system", label: "System", icon: "monitor" }];
+
+/** Screens a brand-new student may reach before the welcome step is done. */
+const BEFORE_WELCOME = new Set(["/welcome", "/signin", "/settings", "/help"]);
+
+/** A staff-only screen, for a student who follows a link to one. */
+function StaffOnly({ children }: { children: ReactNode }) {
+  const session = useSession();
+  if (isStaff(session) || session?.role === "admin") return <>{children}</>;
+  return (
+    <div className="mx-auto max-w-xl py-16">
+      <h1 className="text-title font-semibold text-ink">This page is for the placement cell.</h1>
+      <p className="mt-3 text-ink-soft">Everything you need is in the menu.</p>
+    </div>
+  );
+}
 
 /**
  * One module's crash is one screen's problem. Without this, an exception in
@@ -178,6 +205,24 @@ function App() {
   const location = useLocation();
   const who = session ? `${session.role}:${session.subject}` : "";
   const previous = useRef(who);
+  const candidate = candidateIdOf(session);
+  const consent = usePracticeConsent(candidate);
+  const profile = useProfile(candidate);
+
+  // What the interview setup can plan FOR: the drives this student told us
+  // about that M15 knows the format of. M06 reads these through its context.
+  const targets = useMemo<MockTarget[]>(
+    () =>
+      (profile.data?.drives ?? [])
+        .filter((d) => d.company_id && d.drive_id && daysUntil(d.date) >= 0)
+        .map((d) => ({
+          key: `drive:${d.drive_id}`,
+          label: d.label,
+          sub: `Drive ${countdownLabel(daysUntil(d.date))}`,
+          params: { company: d.company_id!, drive: d.drive_id!, label: d.label },
+        })),
+    [profile.data],
+  );
 
   useEffect(() => {
     if (previous.current !== who) {
@@ -193,23 +238,50 @@ function App() {
     return <SignIn />;
   }
 
+  // A brand-new student — no consent and never welcomed — starts at the
+  // welcome step. Consent first, because without it no interview moves their
+  // skill graph (M04, FR-4.20) and nothing else on the platform reached it.
+  if (
+    candidate &&
+    consent.isSuccess &&
+    profile.isSuccess &&
+    !consent.data &&
+    !profile.data.onboarded_at &&
+    !BEFORE_WELCOME.has(location.pathname)
+  ) {
+    return <Navigate to="/welcome" replace />;
+  }
+  if (location.pathname === "/welcome") {
+    return (
+      <div className="min-h-dvh px-4 py-10">
+        <Welcome />
+      </div>
+    );
+  }
+
+  const staffRole = isStaff(session) || session.role === "admin";
   const staff = [
     ...(isStaff(session) ? PLACEMENT_NAV : []),
-    ...(session?.role === "admin" ? ADMIN_NAV : []),
+    ...(session.role === "admin" ? ADMIN_NAV : []),
   ];
   const nav: FrameNavGroup[] = [
     ...NAV,
     ...(staff.length ? [{ label: "Staff", items: staff }] : []),
-    { label: "Platform", items: PLATFORM_NAV },
+    ...(staffRole ? [{ label: "Platform", items: PLATFORM_NAV }] : []),
   ];
 
   return (
     <Frame groups={nav}>
+      <MockTargetsContext.Provider value={targets}>
       <ScreenBoundary key={`${who}${location.pathname}`}>
       <Routes key={who}>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/" element={<Home />} />
-        <Route path="/system" element={<System />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/answers" element={<Answers />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/system" element={<StaffOnly><System /></StaffOnly>} />
 
         {/* M01 — entry screen by name, the rest of the tree as authored. */}
         <Route path="/resume" element={<IngestPage />} />
@@ -232,6 +304,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </ScreenBoundary>
+      </MockTargetsContext.Provider>
     </Frame>
   );
 }

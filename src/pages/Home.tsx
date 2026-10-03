@@ -18,6 +18,15 @@
  *
  * Every figure is a count of something that happened. Staff, who are nobody's
  * candidate, get the platform overview instead.
+ *
+ * 2026-10-04: the focus does what it says — "Practise Recursion" starts an
+ * interview planned on recursion (M06 `focus_concepts`) — and when a drive the
+ * student told us about is two weeks out or less, the drive comes first,
+ * because that is the deadline that matters. Today now knows the student's
+ * name and drives (M04's profile), counts down to the next drive, shows
+ * milestones earned from what happened, and how many others practised this
+ * week (counts only). The platform overview is for staff; students got the
+ * engine room in its place.
  */
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
@@ -32,8 +41,19 @@ import {
   type MasteryState,
 } from "@ai/core";
 import { useCandidateResumes } from "@ai/m01";
-import { useBottlenecks, useMastery, useTrajectory } from "@ai/m04";
-import { useHistory } from "@ai/m06";
+import {
+  useBottlenecks,
+  useMastery,
+  usePracticeConsent,
+  useProfile,
+  useSaveProfile,
+  useTrajectory,
+  type StudentProfile,
+} from "@ai/m04";
+import { useCohortStats, useHistory } from "@ai/m06";
+
+import { firstName } from "../lib/account";
+import { countdownLabel, daysUntil, downloadIcs, driveIcs, milestones, nextDrive } from "../lib/goals";
 
 import { JOURNEY, type Stage } from "../lib/journey";
 import {
@@ -134,7 +154,10 @@ const STATE_FILL: Record<string, string> = {
 
 /* ────────────────────────────── the cards ─────────────────────────────── */
 
-function FocusCard({ candidate }: { candidate: string }) {
+/** A drive two weeks out or closer outranks the skill graph's suggestion. */
+const DRIVE_FIRST_WITHIN_DAYS = 14;
+
+function FocusCard({ candidate, profile }: { candidate: string; profile?: StudentProfile }) {
   const resumes = useCandidateResumes(candidate);
   const history = useHistory(120);
   const bottlenecks = useBottlenecks(candidate, false);
@@ -145,6 +168,13 @@ function FocusCard({ candidate }: { candidate: string }) {
   const measured = (mastery.data?.totals.measured ?? 0) > 0;
   const blocker = bottlenecks.data?.bottlenecks[0];
   const loading = resumes.isLoading || history.isLoading;
+  const drive = nextDrive(profile?.drives ?? []);
+  const driveDays = drive ? daysUntil(drive.date) : null;
+  const driveSoon = drive !== null && driveDays !== null && driveDays <= DRIVE_FIRST_WITHIN_DAYS;
+  const driveLink =
+    drive?.company_id && drive.drive_id
+      ? `/mock?${new URLSearchParams({ company: drive.company_id, drive: drive.drive_id, label: drive.label })}`
+      : "/mock";
 
   let focus: { eyebrow: string; title: ReactNode; body: string; cta: string; to: string; icon: IconName; why: string };
   if (!hasResume) {
@@ -167,6 +197,22 @@ function FocusCard({ candidate }: { candidate: string }) {
       icon: "mic",
       why: "Your resume is in. Nothing has been asked yet.",
     };
+  } else if (driveSoon && drive) {
+    focus = {
+      eyebrow: `${drive.label} ${countdownLabel(driveDays!)}`,
+      title: (
+        <>
+          Practise for <span className="text-gradient">{drive.label}</span>
+        </>
+      ),
+      body: drive.drive_id
+        ? "An interview planned from what this drive asks for — the closest thing to the real one you can sit today."
+        : "Your drive is close. A full interview today, and add the drive's details in Settings to plan from what it asks for.",
+      cta: "Practise for this drive",
+      to: driveLink,
+      icon: "building",
+      why: "Your nearest drive comes first while it's two weeks away or closer.",
+    };
   } else if (blocker) {
     focus = {
       eyebrow: "Today's focus",
@@ -175,11 +221,11 @@ function FocusCard({ candidate }: { candidate: string }) {
           Practise <span className="text-gradient">{blocker.name}</span>
         </>
       ),
-      body: `It sits underneath ${blocker.blocks} of your weak topics. Fix it first and the rest get easier — that's the most progress one session can buy today.`,
-      cta: "Start a focused interview",
-      to: "/mock",
+      body: `It sits underneath ${blocker.blocks} of your weak topics. Fix it first and the rest get easier.`,
+      cta: `Practise ${blocker.name}`,
+      to: `/mock?${new URLSearchParams({ focus: blocker.concept_id, label: blocker.name })}`,
       icon: "target",
-      why: "Chosen from your skill graph: the weak concept under the most others.",
+      why: "Chosen from your skill graph: the weak topic underneath the most others.",
     };
   } else {
     focus = {
@@ -257,9 +303,11 @@ function FocusCard({ candidate }: { candidate: string }) {
   );
 }
 
-function HabitCard() {
+function HabitCard({ candidate, profile }: { candidate: string; profile?: StudentProfile }) {
   const history = useHistory(120);
-  const [goal, setGoal] = useState(readGoal);
+  const saveProfile = useSaveProfile(candidate);
+  const [picked, setGoal] = useState<number | null>(null);
+  const goal = picked ?? profile?.weekly_goal ?? readGoal();
   const sessions = history.data ?? [];
   const days = useMemo(() => practiceDays(sessions), [sessions]);
   const streak = currentStreak(days);
@@ -337,6 +385,7 @@ function HabitCard() {
               onClick={() => {
                 setGoal(option);
                 writeGoal(option);
+                saveProfile.mutate({ weekly_goal: option });
               }}
               className={`h-7 min-w-7 rounded-md px-2 text-xs font-medium ${
                 goal === option ? "bg-brand text-white" : "text-ink-soft hover:bg-surface-sunken"
@@ -372,7 +421,7 @@ function GrowthCard({ candidate }: { candidate: string }) {
               {mastery.data ? mastery.data.totals.measured : "—"}
             </span>
             <span className="text-sm text-ink-faint">
-              of {mastery.data?.totals.in_ontology ?? "—"} concepts shown so far
+              of {mastery.data?.totals.in_ontology ?? "—"} topics shown so far
             </span>
           </p>
         </div>
@@ -386,12 +435,12 @@ function GrowthCard({ candidate }: { candidate: string }) {
           <Growth points={points} />
           <p className="mt-1 flex justify-between text-[0.6875rem] text-ink-faint">
             <span>{relativeDays(points[0]!.date)}</span>
-            <span>concepts with evidence, over time</span>
+            <span>topics with your answers behind them, over time</span>
           </p>
         </div>
       ) : (
         <p className="mt-6 rounded-lg border border-dashed border-line p-6 text-center text-sm text-ink-faint">
-          Empty on purpose: a belief needs an answer behind it. Your first interview starts it.
+          Your first interview starts it — every topic here has one of your answers behind it.
         </p>
       )}
 
@@ -423,6 +472,188 @@ function GrowthCard({ candidate }: { candidate: string }) {
   );
 }
 
+function CountdownCard({ profile }: { profile?: StudentProfile }) {
+  const drive = nextDrive(profile?.drives ?? []);
+  const later = (profile?.drives ?? []).filter((d) => d !== drive && daysUntil(d.date) >= 0).slice(0, 2);
+  if (!drive) {
+    return (
+      <Card>
+        <CardLabel icon="calendar">Next drive</CardLabel>
+        <p className="mt-4 text-lg leading-snug font-semibold text-ink">Got a drive coming up?</p>
+        <p className="mt-1.5 text-sm text-ink-soft">Add its date and Today counts down to it, and puts it first when it's close.</p>
+        <Link to="/settings#drives" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-brand">
+          <Icon name="plus" size={15} /> Add a drive
+        </Link>
+      </Card>
+    );
+  }
+  const days = daysUntil(drive.date);
+  return (
+    <Card>
+      <div className="flex items-start justify-between gap-3">
+        <CardLabel icon="calendar">Next drive</CardLabel>
+        <button
+          type="button"
+          onClick={() => downloadIcs(`${drive.label.replace(/\W+/g, "-")}.ics`, driveIcs(drive, `${window.location.origin}/mock`))}
+          className="text-xs font-medium text-brand"
+        >
+          Add to calendar
+        </button>
+      </div>
+      <p className="mt-3 flex items-baseline gap-2">
+        <span className="text-4xl font-semibold tracking-tight text-ink" data-numeric>
+          {days}
+        </span>
+        <span className="text-sm text-ink-faint">{days === 1 ? "day" : "days"} to go</span>
+      </p>
+      <p className="mt-1 truncate text-sm font-medium text-ink">{drive.label}</p>
+      <p className="text-xs text-ink-faint">
+        {new Date(`${drive.date}T00:00`).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+      </p>
+      {later.length > 0 && (
+        <ul className="mt-4 space-y-1 border-t border-line pt-3 text-xs text-ink-soft">
+          {later.map((d) => (
+            <li key={`${d.label}-${d.date}`} className="flex justify-between gap-2">
+              <span className="truncate">{d.label}</span>
+              <span className="shrink-0 text-ink-faint">{countdownLabel(daysUntil(d.date))}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function MilestonesCard({ candidate }: { candidate: string }) {
+  const history = useHistory(120);
+  const mastery = useMastery(candidate, false);
+  const solid = (mastery.data?.measured ?? []).filter((r) => r.state === "adequate" || r.state === "strong").length;
+  const all = milestones(history.data ?? [], solid);
+  const earned = all.filter((m) => m.earned);
+  const next = all.find((m) => !m.earned);
+  return (
+    <Card>
+      <CardLabel icon="star">Milestones</CardLabel>
+      <ul className="mt-4 flex flex-wrap gap-2" aria-label="Earned">
+        {all.map((m) => (
+          <li
+            key={m.id}
+            title={m.earned ? `${m.title} — ${m.detail}` : `Not yet: ${m.detail}`}
+            className={`grid h-10 w-10 place-items-center rounded-xl ${
+              m.earned ? "bg-reported-soft text-reported" : "border border-dashed border-line text-ink-faint/60"
+            }`}
+          >
+            <Icon name={m.earned ? "star" : "minus"} size={16} />
+            <span className="sr-only">{m.earned ? `${m.title}, earned` : `${m.title}, not yet`}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-sm text-ink">
+        {earned.length === 0 ? "Your first interview earns the first one." : `${earned.length} of ${all.length} earned`}
+        {earned.length > 0 && <span className="text-ink-faint"> · latest: {earned[earned.length - 1]!.title}</span>}
+      </p>
+      {next?.progress && (
+        <div className="mt-3">
+          <p className="flex justify-between text-xs text-ink-faint">
+            <span>Next: {next.title}</span>
+            <span data-numeric>
+              {next.progress[0]}/{next.progress[1]}
+            </span>
+          </p>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+            <div className="h-full rounded-full bg-brand" style={{ width: `${(next.progress[0] / next.progress[1]) * 100}%` }} />
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function TogetherCard() {
+  const cohort = useCohortStats();
+  const [shared, setShared] = useState<string | null>(null);
+  const invite = async () => {
+    const text = "I'm practising placement interviews here — mock interviews that follow up like a real panel. Join me:";
+    const url = window.location.origin;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Practise with me", text, url });
+        setShared("Sent");
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        setShared("Link copied");
+      }
+    } catch {
+      setShared(null);
+    }
+  };
+  const n = cohort.data?.students_this_week ?? 0;
+  return (
+    <Card>
+      <CardLabel icon="users">Practising this week</CardLabel>
+      {cohort.data && n > 0 ? (
+        <p className="mt-3 flex items-baseline gap-2">
+          <span className="text-4xl font-semibold tracking-tight text-ink" data-numeric>
+            {n}
+          </span>
+          <span className="text-sm text-ink-faint">
+            student{n === 1 ? "" : "s"} · {cohort.data.interviews_this_week} interview
+            {cohort.data.interviews_this_week === 1 ? "" : "s"}
+          </span>
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-ink-soft">Be the first to practise this week.</p>
+      )}
+      <p className="mt-2 text-xs text-ink-faint">Counts only — never names.</p>
+      <button
+        type="button"
+        onClick={invite}
+        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:border-brand-line"
+      >
+        <Icon name="send" size={14} />
+        {shared ?? "Invite a friend to practise"}
+      </button>
+    </Card>
+  );
+}
+
+/** One line, above everything, when something is stopping the loop. */
+function Nudges({ candidate, profile }: { candidate: string; profile?: StudentProfile }) {
+  const consent = usePracticeConsent(candidate);
+  if (consent.isLoading || !profile) return null;
+  if (!consent.data) {
+    return (
+      <Link
+        to="/settings#privacy"
+        className="mt-6 flex items-center gap-3 rounded-xl border border-reported-line bg-reported-soft px-4 py-3 text-sm text-ink hover:border-reported"
+      >
+        <Icon name="info" size={17} className="shrink-0 text-reported" />
+        <span className="flex-1">
+          <span className="font-medium">Your progress isn't being remembered</span>
+          <span className="text-ink-soft"> — your skill graph won't fill in until you turn it on.</span>
+        </span>
+        <Icon name="arrowRight" size={15} />
+      </Link>
+    );
+  }
+  if (!profile.onboarded_at) {
+    return (
+      <Link
+        to="/welcome"
+        className="mt-6 flex items-center gap-3 rounded-xl border border-brand-line bg-brand-soft px-4 py-3 text-sm text-ink hover:border-brand"
+      >
+        <Icon name="sparkles" size={17} className="shrink-0 text-brand" />
+        <span className="flex-1">
+          <span className="font-medium">Tell us what you're preparing for</span>
+          <span className="text-ink-soft"> — your role and drive dates, in under a minute.</span>
+        </span>
+        <Icon name="arrowRight" size={15} />
+      </Link>
+    );
+  }
+  return null;
+}
+
 const MODE_LABEL: Record<string, string> = {
   practice: "Practice",
   mock: "Mock",
@@ -436,9 +667,9 @@ function RecentCard() {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <CardLabel icon="clock">Recent sessions</CardLabel>
-        <Link to="/mock" className="text-xs font-medium text-brand">
-          New
+        <CardLabel icon="clock">Recent interviews</CardLabel>
+        <Link to="/history" className="text-xs font-medium text-brand">
+          All
         </Link>
       </div>
       {recent.length === 0 ? (
@@ -566,6 +797,7 @@ function Platform() {
 export function Home() {
   const session = useSession();
   const candidate = candidateIdOf(session);
+  const profile = useProfile(candidate);
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 
   if (!candidate) {
@@ -586,13 +818,15 @@ export function Home() {
     );
   }
 
+  const name = firstName(profile.data?.display_name || session?.name);
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink-faint">{today}</p>
           <h1 className="mt-1 text-title font-semibold text-ink">
-            {greeting()}.
+            {greeting()}
+            {name && name !== "Demo" && name !== "New" ? `, ${name}` : ""}.
           </h1>
         </div>
         <Link
@@ -604,14 +838,17 @@ export function Home() {
         </Link>
       </header>
 
-      <div className="stagger mt-7 grid gap-5 lg:grid-cols-3">
-        <FocusCard candidate={candidate} />
-        <HabitCard />
-        <GrowthCard candidate={candidate} />
-        <RecentCard />
-      </div>
+      <Nudges candidate={candidate} profile={profile.data} />
 
-      <Platform />
+      <div className="stagger mt-7 grid gap-5 lg:grid-cols-3">
+        <FocusCard candidate={candidate} profile={profile.data} />
+        <HabitCard candidate={candidate} profile={profile.data} />
+        <GrowthCard candidate={candidate} />
+        <CountdownCard profile={profile.data} />
+        <RecentCard />
+        <MilestonesCard candidate={candidate} />
+        <TogetherCard />
+      </div>
     </>
   );
 }

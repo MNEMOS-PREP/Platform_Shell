@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --no-warnings tests/practice.test.ts"
+    "test": "node --experimental-strip-types --no-warnings tests/practice.test.ts && node --experimental-strip-types --no-warnings tests/goals.test.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

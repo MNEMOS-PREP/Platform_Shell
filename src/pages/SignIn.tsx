@@ -6,21 +6,19 @@
  * `@ai/core`'s session (v0.12.0), which every mounted module reads and which
  * writes the identity headers every request carries.
  *
- * It is a picker, and says so. The backends trust these headers only under
- * `AI_AUTH_MODE=dev`. When a real provider lands (the master plan recommends
- * Clerk, then college SSO), it replaces the choices below and nothing else:
- * `signIn()` is fed by the provider instead of a click.
+ * 2026-10-04 — a student signs in with their college email (lib/account.ts):
+ * the id is derived from it, so the same email is the same student on any
+ * browser. Until then the screen was a picker that offered Administrator and
+ * Placement officer to anyone, which undercut the privacy story every other
+ * screen tells. Staff identities are still here — a demo needs them — but only
+ * behind `/signin?staff` (or a `?as=` link), never on the student's way in.
  *
- * Two rules from the spec it keeps. The roles are `ai_core.identity`'s four,
- * closed — nothing here invents a fifth. And there is no "view as a student"
- * for staff: whether a placement officer may see an individual is §15 decision
- * 4, unresolved, and a button would decide it silently.
- *
- * Signed out, it is the whole page (no rail — there is nothing to navigate to
- * yet). Signed in, it is the "switch person" screen inside the frame.
+ * Still not authentication, and the staff view says so. When a real provider
+ * lands (the master plan recommends college SSO), it feeds `signIn` a verified
+ * subject and this screen loses its form, not its job.
  */
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   Icon,
@@ -32,43 +30,33 @@ import {
   type Session,
 } from "@ai/core";
 
-interface Choice {
+import { firstName, looksLikeEmail, normaliseEmail, readEmail, subjectForEmail, writeEmail } from "../lib/account";
+
+interface StaffChoice {
   session: () => Session;
   title: string;
-  who: string;
   icon: IconName;
-  /** What this identity is FOR in a demo, in one line. */
   shows: string;
 }
 
-const CHOICES: Choice[] = [
-  {
-    session: () => ({ role: "student", subject: SEEDED_CANDIDATE_ID, name: "Demo student" }),
-    title: "Demo student",
-    who: "Student · seeded",
-    icon: "student",
-    shows: "A resume, a skill graph and history already — the populated path.",
-  },
-  {
-    session: () => ({ role: "student", subject: crypto.randomUUID(), name: "New student" }),
-    title: "A new student",
-    who: "Student · fresh",
-    icon: "sparkles",
-    shows: "Nothing measured yet — the cold start, where every screen says “not measured”.",
-  },
+const STAFF: StaffChoice[] = [
   {
     session: () => ({ role: "placement_officer", subject: "placement-officer-1", name: "Placement cell" }),
     title: "Placement officer",
-    who: ROLE_LABEL.placement_officer,
     icon: "building",
     shows: "The review queue and company curation. Cohort figures, never one student's record.",
   },
   {
     session: () => ({ role: "admin", subject: "admin-1", name: "Operations" }),
     title: "Administrator",
-    who: ROLE_LABEL.admin,
     icon: "shield",
-    shows: "Disputes, raters and the outboxes — and every record, which is worth logging.",
+    shows: "Disputes, raters, the outboxes and the evaluation bench.",
+  },
+  {
+    session: () => ({ role: "student", subject: crypto.randomUUID(), name: "New student" }),
+    title: "A brand-new student",
+    icon: "sparkles",
+    shows: "Nothing measured yet — the cold start, including the welcome step.",
   },
 ];
 
@@ -76,17 +64,40 @@ export function SignIn() {
   const current = useSession();
   const navigate = useNavigate();
   const location = useLocation();
-  const [custom, setCustom] = useState("");
+  const [params] = useSearchParams();
+  const staffMode = params.has("staff");
+  const [email, setEmail] = useState(() => readEmail() ?? "");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Back to where the student was headed, or the overview.
+  // Back to where the student was headed, or Today.
   const from = (location.state as { from?: string } | null)?.from;
-  const go = (session: Session) => {
+  const go = (session: Session, emailUsed: string | null = null) => {
+    writeEmail(emailUsed);
     signIn(session);
     navigate(from && from !== "/signin" ? from : "/", { replace: true });
   };
 
+  const submit = async () => {
+    if (!looksLikeEmail(email)) {
+      setError("That doesn't look like an email address.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const subject = await subjectForEmail(email);
+      const display = name.trim() || firstName(normaliseEmail(email).split("@")[0]!.replace(/[._-]+/g, " ")) || undefined;
+      go({ role: "student", subject, name: display }, email);
+    } catch {
+      setError("This browser can't sign in here — open the platform on localhost or over https.");
+      setBusy(false);
+    }
+  };
+
   const content = (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-md">
       <div className="flex items-center gap-3">
         <span
           aria-hidden
@@ -100,105 +111,144 @@ export function SignIn() {
         </span>
       </div>
 
-      <h1 className="mt-10 text-display font-semibold text-ink">
-        Who's <span className="text-gradient">practising</span> today?
+      <h1 className="mt-10 text-title font-semibold text-ink">
+        {current ? "Switch account" : (
+          <>
+            Practise for <span className="text-gradient">placements</span>
+          </>
+        )}
       </h1>
-      <p className="mt-4 max-w-xl leading-relaxed text-ink-soft">
-        Pick who you are. Every screen reads the same answer, and every request carries it.
+      <p className="mt-3 leading-relaxed text-ink-soft">
+        Mock interviews that follow up like a real panel, and a skill graph that shows what you
+        know.
       </p>
 
       {current && (
-        <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-soft">
-          <Icon name="checkCircle" size={15} className="text-confirmed" />
-          Signed in as{" "}
-          <span className="font-medium text-ink">{current.name ?? ROLE_LABEL[current.role]}</span>
-          <span className="font-mono text-xs text-ink-faint">{current.subject.slice(0, 8)}</span>
+        <p className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-soft">
+          <Icon name="checkCircle" size={15} className="shrink-0 text-confirmed" />
+          <span className="truncate">
+            Signed in as <span className="font-medium text-ink">{current.name ?? ROLE_LABEL[current.role]}</span>
+          </span>
         </p>
       )}
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        {CHOICES.map((choice) => (
-          <button
-            key={choice.title}
-            type="button"
-            onClick={() => go(choice.session())}
-            className="panel group flex items-start gap-4 p-5 text-left hover:-translate-y-0.5 hover:border-brand-line hover:shadow-raised focus-visible:border-brand"
-            style={{ transitionProperty: "transform, box-shadow, border-color", transitionDuration: "180ms" }}
-          >
-            <span
-              aria-hidden
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand"
-            >
-              <Icon name={choice.icon} size={20} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2">
-                <span className="font-semibold text-ink">{choice.title}</span>
-                <Icon
-                  name="arrowRight"
-                  size={15}
-                  className="ml-auto text-brand opacity-0 transition-opacity group-hover:opacity-100"
-                />
-              </span>
-              <span className="mt-0.5 block text-xs text-ink-faint">{choice.who}</span>
-              <span className="mt-2 block text-sm leading-relaxed text-ink-soft">{choice.shows}</span>
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <details className="group mt-6">
-        <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-sm text-ink-soft hover:text-ink">
-          <Icon name="chevronRight" size={15} className="transition-transform group-open:rotate-90" />
-          Sign in as a particular student id
-        </summary>
-        <form
-          className="mt-3 flex flex-wrap items-end gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (custom.trim()) go({ role: "student", subject: custom.trim() });
-          }}
+      <form
+        className="panel mt-7 space-y-4 p-6"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
+      >
+        <label className="block text-sm font-medium text-ink">
+          College email
+          <input
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@college.edu"
+            className="mt-1.5 h-11 w-full rounded-lg border border-line bg-surface px-3 text-[0.9375rem] text-ink outline-none focus:border-brand"
+          />
+        </label>
+        <label className="block text-sm font-medium text-ink">
+          Your name <span className="font-normal text-ink-faint">(optional)</span>
+          <input
+            autoComplete="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="What should we call you?"
+            className="mt-1.5 h-11 w-full rounded-lg border border-line bg-surface px-3 text-[0.9375rem] text-ink outline-none focus:border-brand"
+          />
+        </label>
+        {error && (
+          <p role="alert" className="text-sm text-contested">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={busy || !email.trim()}
+          className="bg-brand-gradient flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold text-white shadow-glow disabled:opacity-50"
         >
-          <label className="flex min-w-[18rem] flex-1 flex-col gap-1.5 text-sm text-ink-soft">
-            Student id
-            <input
-              value={custom}
-              onChange={(event) => setCustom(event.target.value)}
-              placeholder="00000000-0000-4000-8000-…"
-              className="h-10 rounded-lg border border-line bg-surface px-3 font-mono text-sm text-ink outline-none focus:border-brand"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={!custom.trim()}
-            className="bg-brand-gradient h-10 rounded-lg px-4 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            Continue
-          </button>
-        </form>
-      </details>
+          {busy ? "Signing in…" : "Continue"}
+          <Icon name="arrowRight" size={16} />
+        </button>
+        <p className="text-xs leading-relaxed text-ink-faint">
+          The same email brings back your interviews and skill graph on any device.
+        </p>
+      </form>
 
-      <p className="mt-10 flex items-start gap-2 border-t border-line pt-5 text-xs leading-relaxed text-ink-faint">
-        <Icon name="info" size={14} className="mt-0.5 shrink-0" />
-        <span>
-          Development sign-in. The backends trust it only under{" "}
-          <code className="font-mono">AI_AUTH_MODE=dev</code>; a real provider (college SSO)
-          replaces this screen, not the modules.
+      <button
+        type="button"
+        onClick={() => go({ role: "student", subject: SEEDED_CANDIDATE_ID, name: "Demo student" })}
+        className="mt-4 flex w-full items-center gap-3 rounded-xl border border-dashed border-line px-4 py-3 text-left text-sm text-ink-soft hover:border-brand-line hover:text-ink"
+      >
+        <Icon name="student" size={18} className="shrink-0 text-brand" />
+        <span className="flex-1">
+          <span className="font-medium text-ink">Look around first</span>
+          <span className="block text-xs text-ink-faint">
+            As a demo student who already has a resume, interviews and a skill graph.
+          </span>
         </span>
-      </p>
+        <Icon name="arrowRight" size={15} />
+      </button>
+
+      {staffMode && (
+        <section className="mt-10 border-t border-line pt-6" aria-labelledby="staff-heading">
+          <h2 id="staff-heading" className="text-sm font-semibold text-ink">
+            Staff and demo identities
+          </h2>
+          <div className="mt-3 space-y-2">
+            {STAFF.map((choice) => (
+              <button
+                key={choice.title}
+                type="button"
+                onClick={() => go(choice.session())}
+                className="panel flex w-full items-start gap-3 p-4 text-left hover:border-brand-line"
+              >
+                <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+                  <Icon name={choice.icon} size={18} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-ink">{choice.title}</span>
+                  <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">{choice.shows}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-ink-faint">
+            <Icon name="info" size={14} className="mt-0.5 shrink-0" />
+            <span>
+              Development sign-in: the backends trust these identities only under{" "}
+              <code className="font-mono">AI_AUTH_MODE=dev</code>. College SSO replaces this
+              screen, not the modules.
+            </span>
+          </p>
+        </section>
+      )}
+
+      {!staffMode && !current && (
+        <p className="mt-8 text-center text-xs text-ink-faint">
+          Placement cell?{" "}
+          <Link to="/signin?staff" className="font-medium text-ink-soft hover:text-ink">
+            Staff sign-in
+          </Link>
+        </p>
+      )}
     </div>
   );
 
   if (current) return <div className="py-4">{content}</div>;
 
   return (
-    <div className="relative flex min-h-dvh items-center overflow-hidden px-5 py-16">
+    <div className="relative flex min-h-dvh items-center overflow-hidden px-4 py-16">
       <div aria-hidden className="bg-grid pointer-events-none absolute inset-0" />
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 left-1/2 h-[28rem] w-[48rem] -translate-x-1/2 rounded-full bg-brand opacity-[0.14] blur-3xl"
       />
-      <div className="page-in relative w-full">{content}</div>
+      <main className="page-in relative w-full">{content}</main>
     </div>
   );
 }

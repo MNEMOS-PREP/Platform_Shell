@@ -18,8 +18,16 @@
  * M15 publishes the current company and its sections rather than drawing them
  * (see that module's `ui/embed.ts`), so the rail carries platform navigation
  * above the rule and wherever-you-are navigation below it.
+ *
+ * ── 2026-10-04 ──────────────────────────────────────────────────────────────
+ * On a phone the rail became an eight-item sideways strip under the top bar.
+ * It is now a bottom tab bar — Today, Interview, Skills, Companies, More —
+ * the shape every app a student uses has, in thumb reach; "More" opens the
+ * rest. The account card shows the student's name and email rather than a
+ * truncated id, and holds Settings and Help. Single-key shortcuts (N, G then
+ * S, ?) sit beside ⌘K.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
@@ -32,12 +40,15 @@ import {
   type IconName,
   type Session,
 } from "@ai/core";
+import { useProfile } from "@ai/m04";
 import { useHistory } from "@ai/m06";
 import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
 
+import { readEmail, writeEmail } from "../lib/account";
 import { currentStreak, practiceDays } from "../lib/practice";
 import { toggleTheme, useTheme } from "../lib/theme";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
+import { ShortcutsDialog, useShortcuts } from "./Shortcuts";
 
 export interface FrameNavItem {
   to: string;
@@ -56,14 +67,35 @@ export interface FrameNavGroup {
 const MOD =
   typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "\u2318" : "Ctrl ";
 
+/** Screens reached from the account menu rather than the rail: still named in the top bar. */
+const OFF_MENU: FrameNavItem[] = [
+  { to: "/settings", label: "Settings", icon: "settings" },
+  { to: "/help", label: "Help & feedback", icon: "help" },
+  { to: "/signin", label: "Switch account", icon: "users" },
+];
+
+/** The phone's tab bar: the four places a student goes most, then More. */
+const TABS: FrameNavItem[] = [
+  { to: "/", label: "Today", icon: "compass" },
+  { to: "/mock", label: "Interview", icon: "mic" },
+  { to: "/skills", label: "Skills", icon: "graph" },
+  { to: "/companies", label: "Companies", icon: "building" },
+];
+
 function isActive(item: FrameNavItem, pathname: string): boolean {
   if (item.to === "/") return pathname === "/";
   return pathname === item.to || pathname.startsWith(`${item.to}/`) ||
     (item.match ? pathname.startsWith(item.match) : false);
 }
 
-function initials(session: Session): string {
-  const source = session.name ?? ROLE_LABEL[session.role];
+/** The name to show: what the student told us (M04's profile), else the session's. */
+function useDisplayName(session: Session | null): string | undefined {
+  const profile = useProfile(candidateIdOf(session));
+  return profile.data?.display_name || session?.name;
+}
+
+function initials(session: Session, name?: string): string {
+  const source = name ?? session.name ?? ROLE_LABEL[session.role];
   return source
     .split(/\s+/)
     .filter(Boolean)
@@ -155,8 +187,12 @@ function AccountCard() {
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
+  const name = useDisplayName(session);
   if (!session) return null;
-  const label = session.name ?? ROLE_LABEL[session.role];
+  const label = name ?? ROLE_LABEL[session.role];
+  const email = session.role === "student" ? readEmail() : null;
+  const linkClass =
+    "flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-rail-active hover:text-rail-ink";
 
   return (
     <div className="m-3 rounded-xl border border-rail-line bg-rail-hover p-3">
@@ -165,34 +201,36 @@ function AccountCard() {
           aria-hidden
           className="bg-brand-gradient grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
         >
-          {initials(session)}
+          {initials(session, name)}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-rail-ink">{label}</span>
-          <span className="block truncate font-mono text-[0.6875rem] text-rail-ink-soft">
-            {ROLE_LABEL[session.role]} · {session.subject.slice(0, 8)}
+          <span className="block truncate text-[0.6875rem] text-rail-ink-soft">
+            {email ?? ROLE_LABEL[session.role]}
           </span>
         </span>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-1.5">
-        <Link
-          to="/signin"
-          state={{ from: location.pathname }}
-          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-rail-active hover:text-rail-ink"
-        >
-          <Icon name="users" size={14} />
-          Switch
+      <div className="mt-3 grid grid-cols-3 gap-1">
+        <Link to="/settings" className={linkClass} title="Settings">
+          <Icon name="settings" size={14} />
+          Settings
+        </Link>
+        <Link to="/help" state={{ from: location.pathname }} className={linkClass} title="Help & feedback">
+          <Icon name="help" size={14} />
+          Help
         </Link>
         <button
           type="button"
           onClick={() => {
+            writeEmail(null);
             signOut();
             navigate("/signin");
           }}
-          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-rail-active hover:text-rail-ink"
+          className={linkClass}
+          title="Sign out"
         >
           <Icon name="arrowLeft" size={14} />
-          Sign out
+          Out
         </button>
       </div>
     </div>
@@ -261,7 +299,10 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
 
   const sections = rail?.sections ?? [];
   const items = groups.flatMap((g) => g.items);
-  const current = items.find((item) => isActive(item, location.pathname));
+  const current =
+    items.find((item) => isActive(item, location.pathname)) ??
+    OFF_MENU.find((item) => isActive(item, location.pathname));
+  const displayName = useDisplayName(session);
 
   // Cmd+K / Ctrl+K anywhere; "/" when not already typing.
   const [palette, setPalette] = useState(false);
@@ -283,6 +324,12 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
   }, []);
 
   const navigate = useNavigate();
+  const [shortcuts, setShortcuts] = useState(false);
+  const openShortcuts = useCallback(() => setShortcuts(true), []);
+  useShortcuts(openShortcuts, !palette && !shortcuts);
+  const [more, setMore] = useState(false);
+  useEffect(() => setMore(false), [location.pathname]);
+
   const paletteItems: PaletteItem[] = [
     ...items.map((item) => ({
       id: `go:${item.to}`,
@@ -314,6 +361,30 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
       icon: "listChecks",
       keywords: "jd posting drive role",
       run: () => navigate("/jd"),
+    },
+    {
+      id: "go:settings",
+      group: "Go to",
+      label: "Settings",
+      icon: "settings",
+      keywords: "profile name goal reminder consent export delete data privacy",
+      run: () => navigate("/settings"),
+    },
+    {
+      id: "go:help",
+      group: "Go to",
+      label: "Help & feedback",
+      icon: "help",
+      keywords: "support report bug problem question faq",
+      run: () => navigate("/help", { state: { from: location.pathname } }),
+    },
+    {
+      id: "do:shortcuts",
+      group: "Actions",
+      label: "Keyboard shortcuts",
+      icon: "keyboard",
+      keywords: "keys hotkeys",
+      run: openShortcuts,
     },
     {
       id: "do:theme",
@@ -452,49 +523,102 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
                 <ThemeToggle />
                 {session && (
                   <Link
-                    to="/signin"
-                    state={{ from: location.pathname }}
-                    title={`Signed in as ${session.name ?? ROLE_LABEL[session.role]} — switch`}
+                    to="/settings"
+                    title={`Signed in as ${displayName ?? ROLE_LABEL[session.role]} — settings`}
                     className="bg-brand-gradient ml-1 grid h-8 w-8 place-items-center rounded-full text-[0.6875rem] font-semibold text-white lg:hidden"
                   >
-                    {initials(session)}
+                    {initials(session, displayName)}
                   </Link>
                 )}
               </div>
             </div>
-            {/* The rail is hidden below lg, so the nav has to survive somewhere. */}
-            <nav
-              aria-label="Platform"
-              className="flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none] lg:hidden"
-            >
-              {items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={() =>
-                    [
-                      "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm",
-                      isActive(item, location.pathname)
-                        ? "bg-brand text-white"
-                        : "text-ink-soft hover:bg-surface-sunken",
-                    ].join(" ")
-                  }
-                >
-                  <Icon name={item.icon} size={14} />
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
           </header>
 
-          <main key={location.pathname} className="page-in min-w-0 flex-1 px-5 py-8 md:px-10 md:py-10 xl:px-14">
+          <main
+            key={location.pathname}
+            className="page-in min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-5 md:px-10 md:pt-10 lg:pb-10 xl:px-14"
+          >
             {/* Wide, but not edge-to-edge on an ultrawide - past about 1500px a
                 row of cards stops being scannable in one sweep. */}
             <div className="mx-auto w-full max-w-[92rem]">{children}</div>
           </main>
         </div>
       </div>
+      {/* ---------- phone: a tab bar in thumb reach ---------- */}
+      <nav
+        aria-label="Main"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+      >
+        <div className="mx-auto grid max-w-lg grid-cols-5">
+          {TABS.map((tab) => {
+            const on = isActive(tab, location.pathname);
+            return (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                aria-current={on ? "page" : undefined}
+                className={`flex h-16 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium ${
+                  on ? "text-brand" : "text-ink-faint"
+                }`}
+              >
+                <Icon name={tab.icon} size={20} />
+                {tab.label}
+              </NavLink>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setMore(true)}
+            aria-expanded={more}
+            className={`flex h-16 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium ${
+              more ? "text-brand" : "text-ink-faint"
+            }`}
+          >
+            <Icon name="menu" size={20} />
+            More
+          </button>
+        </div>
+      </nav>
+      {more && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMore(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Everything else"
+            className="absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong" aria-hidden />
+            {groups.map((group) => (
+              <div key={group.label} className="mb-3">
+                <p className="px-2 pb-1 text-[0.6875rem] font-medium tracking-wide text-ink-faint uppercase">{group.label}</p>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`flex h-11 items-center gap-3 rounded-lg px-2 text-sm ${
+                      isActive(item, location.pathname) ? "bg-brand-soft text-brand" : "text-ink"
+                    }`}
+                  >
+                    <Icon name={item.icon} size={17} />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            ))}
+            <div className="mt-2 grid grid-cols-2 gap-2 border-t border-line pt-3">
+              <Link to="/settings" className="flex h-11 items-center gap-2 rounded-lg px-2 text-sm text-ink">
+                <Icon name="settings" size={17} /> Settings
+              </Link>
+              <Link to="/help" state={{ from: location.pathname }} className="flex h-11 items-center gap-2 rounded-lg px-2 text-sm text-ink">
+                <Icon name="help" size={17} /> Help
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
       <CommandPalette open={palette} onClose={() => setPalette(false)} items={paletteItems} />
+      <ShortcutsDialog open={shortcuts} onClose={() => setShortcuts(false)} />
     </HostShellContext.Provider>
   );
 }
