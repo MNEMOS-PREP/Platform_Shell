@@ -32,12 +32,19 @@
         platform.ps1              modules, then the HOME tab
         platform.ps1 -Check       report what is on disk and reachable
         platform.ps1 -ShellOnly   assume the modules are already up
+        platform.ps1 -Seed        load every module's demo data, launch nothing
+
+    Every mode but -Seed also says where each module will find a model key.
+    A module that calls a model runs without one - each degrades and says so
+    in its own tab - which on a demo machine means an interview nobody
+    scores. Names and places only; a value is never printed.
 #>
 
 [CmdletBinding()]
 param(
     [switch] $Check,
-    [switch] $ShellOnly
+    [switch] $ShellOnly,
+    [switch] $Seed
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,6 +67,51 @@ $modules = @(Get-PlatformModules -Root $root)
 function Test-Port {
     param([int] $Port)
     return [bool] (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+}
+
+# -- seed -------------------------------------------------------------------
+
+if ($Seed) {
+    Write-Host ''
+    Write-Host '  Loading demo data...' -ForegroundColor DarkGray
+    Write-Host ''
+    foreach ($m in $modules) {
+        if (-not $m.Seed) { continue }
+        if (-not $m.Python) {
+            Write-Host ("  [MISSING] {0}  no virtualenv in ..\{1} - run its start_all.bat once" -f $m.Id, $m.Folder) -ForegroundColor Red
+            continue
+        }
+        Write-Host ("  seeding   {0}" -f $m.Id) -ForegroundColor DarkGray
+        Push-Location (Split-Path -Parent $m.Seed)
+        try {
+            # Every seed is safe to run again: it adds what is missing and
+            # says what was already there.
+            & $m.Python 'seed.py' 2>&1 | ForEach-Object { Write-Host ("            {0}" -f $_) -ForegroundColor DarkGray }
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host ("  [FAILED]  {0}  seed.py exited {1}" -f $m.Id, $LASTEXITCODE) -ForegroundColor Red
+            }
+        }
+        finally { Pop-Location }
+    }
+    Write-Host ''
+    Write-Host '  Done. Sign in as Demo student to see it.' -ForegroundColor DarkGray
+    Write-Host ''
+    exit 0
+}
+
+# -- model keys -------------------------------------------------------------
+
+$keyNames = Get-ModelKeyNames -Root $root
+Write-Host ''
+Write-Host '  Model keys - where each module will find one, never the value' -ForegroundColor DarkGray
+foreach ($m in @($modules | Where-Object { $_.Model })) {
+    $source = Find-ModelKey -Module $m -Names $keyNames
+    if ($source) {
+        Write-Host ("  [key]     {0}  {1}" -f $m.Id, $source) -ForegroundColor DarkGray
+    }
+    else {
+        Write-Host ("  [NO KEY]  {0}  runs without its model. Put {1}=... in ..\keys.txt" -f $m.Id, $keyNames[0]) -ForegroundColor Yellow
+    }
 }
 
 Write-Host ''

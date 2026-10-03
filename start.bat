@@ -12,6 +12,7 @@ REM
 REM    start.bat            modules, then the shell
 REM    start.bat shell      the shell only, modules assumed up
 REM    start.bat check      report what is on disk, launch nothing
+REM    start.bat seed       load every module's demo data, launch nothing
 REM
 REM  What actually runs it: scripts\platform.ps1
 REM  Ports:                 PORTS.txt (shell is 5173)
@@ -19,6 +20,7 @@ REM ============================================================
 
 if /i "%~1"=="check" goto CHECK
 if /i "%~1"=="shell" goto SHELL
+if /i "%~1"=="seed"  goto SEED
 if "%~1"==""         goto ALL
 goto USAGE
 
@@ -28,6 +30,10 @@ exit /b %errorlevel%
 
 :SHELL
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\platform.ps1" -ShellOnly
+exit /b %errorlevel%
+
+:SEED
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\platform.ps1" -Seed
 exit /b %errorlevel%
 
 :CHECK
@@ -41,5 +47,6 @@ echo.
 echo     start.bat            modules, then the shell
 echo     start.bat shell      the shell only
 echo     start.bat check      verify, launch nothing
+echo     start.bat seed       load demo data, launch nothing
 echo.
 exit /b 1

@@ -79,10 +79,10 @@ export const JOURNEY: Stage[] = [
     step: 6,
     module: "M04",
     title: "Skill graph",
-    blurb: "What you know, tracked over time, with an honest error bar.",
+    blurb: "What you know, tracked over time, with an honest error bar — and what moved after your last answer.",
     mechanism: "IRT posterior (theta and SE) is the single source of truth. Untested is never zero.",
-    kind: "headless",
-    api: "/sys/m04/v1/concepts",
+    kind: "ui",
+    to: "/skills",
   },
   {
     step: 7,

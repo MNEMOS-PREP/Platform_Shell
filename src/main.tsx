@@ -38,6 +38,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MODULES, isStaff, useSession } from "@ai/core";
 import { IngestPage, ResumePage } from "@ai/m01";
 import { JdPage, ParsePage } from "@ai/m02";
+import { m04Routes } from "@ai/m04";
 import { m06Routes } from "@ai/m06";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
@@ -63,6 +64,7 @@ const NAV: FrameNavItem[] = [
   { to: "/jd", label: "Job description", glyph: "▦", match: "/jds" },
   { to: "/mock", label: "Mock interview", glyph: "◈" },
   { to: "/score", label: "Evaluation", glyph: "◎", match: "/turns" },
+  { to: "/skills", label: "Skill graph", glyph: "◇" },
   { to: "/companies", label: "Companies", glyph: "△" },
   { to: "/system", label: "System", glyph: "○" },
 ];
@@ -143,7 +145,8 @@ function App() {
         <Route path="/jd" element={<ParsePage />} />
         <Route path="/jds/:jdId" element={<JdPage />} />
 
-        {/* M06, M13 and M15 mount whole: no index route, no collision. */}
+        {/* M04, M06, M13 and M15 mount whole: no index route, no collision. */}
+        {m04Routes}
         {m06Routes}
         {m13Routes}
         {m15Routes}

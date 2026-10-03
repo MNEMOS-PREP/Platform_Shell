@@ -18,6 +18,7 @@
       "@ai/core": ["../Platform_Core/src/index.ts"],
       "@ai/m01": ["../resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src/index.ts"],
       "@ai/m02": ["../jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"],
+      "@ai/m04": ["../Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"],
       "@ai/m06": ["../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"],
       "@ai/m13": ["../Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"],
       "@ai/m15": ["../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"]

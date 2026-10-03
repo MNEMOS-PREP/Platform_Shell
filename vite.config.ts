@@ -1,4 +1,5 @@
-import { dirname, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -42,6 +43,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/core": sibling("Platform_Core/src/index.ts"),
   "@ai/m01": sibling("resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src/index.ts"),
   "@ai/m02": sibling("jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"),
+  "@ai/m04": sibling("Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"),
   "@ai/m06": sibling("Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"),
   "@ai/m13": sibling("Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"),
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
@@ -105,6 +107,26 @@ const OWNER: Record<string, Mod> = {
   */
   deps: "m13",
 };
+
+/*
+  Every mounted module must be scanned by Tailwind, or its own classes are
+  never generated and its screens render structurally right and visually
+  collapsed. That happened: M06, the front door, was mounted on 2026-09-30 and
+  missing from theme.css's @source list until 2026-10-03. The list is CSS and
+  cannot be generated, so it is checked here instead - the shell refuses to
+  start with a module whose styles it would not build.
+*/
+const theme = readFileSync(resolve(here, "src/theme.css"), "utf8");
+const unscanned = Object.entries(MODULE_SRC)
+  .filter(([name]) => name !== "@ai/core")
+  .map(([name, entry]) => [name, relative(resolve(here, "src"), dirname(entry)).replace(/\\/g, "/")])
+  .filter(([, dir]) => !theme.includes(`@source "${dir}";`));
+if (unscanned.length) {
+  throw new Error(
+    "src/theme.css does not scan these mounted modules, so their styles would not be built:\n" +
+      unscanned.map(([name, dir]) => `  ${name}: add  @source "${dir}";`).join("\n"),
+  );
+}
 
 const proxy: Record<string, unknown> = {};
 for (const [noun, mod] of Object.entries(OWNER)) {
