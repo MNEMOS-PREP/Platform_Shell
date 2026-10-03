@@ -48,7 +48,15 @@ function Shell({
 }) {
   return (
     <div className="mx-auto w-full max-w-xl py-6">
-      <div className="flex items-center gap-2" aria-label={`Step ${step + 1} of ${STEPS.length}`}>
+      <div
+        className="flex items-center gap-2"
+        role="progressbar"
+        aria-label="Getting started"
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-valuenow={step + 1}
+        aria-valuetext={`Step ${step + 1} of ${STEPS.length}`}
+      >
         {STEPS.map((label, i) => (
           <span
             key={label}

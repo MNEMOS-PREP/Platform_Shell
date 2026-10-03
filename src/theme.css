@@ -106,7 +106,9 @@
 
   --color-ink: oklch(0.18 0.016 275);
   --color-ink-soft: oklch(0.44 0.016 275);
-  --color-ink-faint: oklch(0.56 0.014 275);
+  /* 0.56 → 0.52 (2026-10-04, axe): 4.2:1 on the brand-soft and green
+     tints; 4.6:1+ everywhere now. */
+  --color-ink-faint: oklch(0.52 0.014 275);
 
   /* ── brand ──────────────────────────────────────────────────────────────
      Enough chroma to survive being a 32px filled square in a dark rail, and
@@ -191,9 +193,18 @@
 
     --color-ink: oklch(0.965 0.004 275);
     --color-ink-soft: oklch(0.75 0.01 275);
-    --color-ink-faint: oklch(0.615 0.012 275);
+    /* 0.615 → 0.66 (2026-10-04, axe): faint text sat at 4.0:1 on the
+       tinted panels (green "what a strong answer covers", amber notices). */
+    --color-ink-faint: oklch(0.66 0.012 275);
 
     --color-brand: oklch(0.575 0.19 279);
+    /* Brand as TEXT. The fill reads well behind white, but as a link or label
+       on a dark surface it measured 3.6:1 on brand-soft and 4.1:1 on surface;
+       this lighter step is 6:1+ on both. */
+    --color-brand-ink: oklch(0.76 0.13 279);
+    /* Core's dark on-brand is near-black, for core's lighter dark brand; on
+       this brand it measured 4.17:1. White is 4.6:1. */
+    --color-on-brand: oklch(1 0 0);
     --color-brand-hover: oklch(0.63 0.18 279);
     --color-brand-soft: oklch(0.235 0.06 279);
     --color-brand-line: oklch(0.4 0.11 279);
@@ -447,6 +458,8 @@
     the entire point.
   */
   .quote-mark {
+    /* A <mark> defaults to black text: 1.9:1 on the dark quote green. */
+    color: inherit;
     background: var(--color-quote);
     box-shadow: inset 0 -2px 0 var(--color-quote-line);
     border-radius: 3px;
@@ -555,3 +568,14 @@
     100% { box-shadow: 0 0 0 7px transparent; }
   }
 }
+
+/*
+  Brand-coloured TEXT in dark mode uses the lighter brand-ink (see the dark
+  tokens). Unlayered on purpose: it has to win over Tailwind's layered
+  `text-brand` utility without touching the fill, which stays `--color-brand`.
+*/
+:root[data-theme="dark"] .text-brand,
+:root[data-theme="dark"] .hover\:text-brand:hover {
+  color: var(--color-brand-ink);
+}
+

@@ -133,6 +133,7 @@ function StreakChip() {
     <Link
       to="/"
       title={streak ? `${streak}-day practice streak` : "No practice streak yet - one interview starts it"}
+      aria-label={streak ? `${streak}-day practice streak` : "No practice streak yet"}
       className={`flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold ${
         streak
           ? "border-reported-line bg-reported-soft text-reported"
@@ -416,7 +417,7 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
           <nav aria-label="Platform" className="flex-1 space-y-5 overflow-y-auto px-3 pt-2 pb-4">
             {groups.map((group) => (
               <div key={group.label}>
-                <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft/70 uppercase">
+                <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft uppercase">
                   {group.label}
                 </p>
                 <div className="space-y-0.5">
@@ -446,6 +447,7 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
                       item.disabledReason ? (
                         <span
                           key={item.to}
+                          aria-disabled="true"
                           title={item.disabledReason}
                           className="flex h-8 cursor-not-allowed items-center gap-2 rounded-lg px-3 text-sm text-rail-ink-soft/45"
                         >

@@ -22,10 +22,16 @@ import {
 } from "@ai/core";
 import { bandOf, topicName, useHistory, useReport, type SessionSummary } from "@ai/m06";
 
+/** Colour as a dot and a tint, the word in ink (contrast in both themes). */
 const BAND_STYLE: Record<AnswerBand, string> = {
-  strong: "border-mastery-strong/40 text-mastery-strong",
-  partly: "border-mastery-ok/40 text-mastery-ok",
-  not_yet: "border-mastery-weak/40 text-mastery-weak",
+  strong: "border-mastery-strong/50 bg-mastery-strong/12",
+  partly: "border-mastery-ok/50 bg-mastery-ok/12",
+  not_yet: "border-mastery-weak/50 bg-mastery-weak/12",
+};
+const BAND_DOT: Record<AnswerBand, string> = {
+  strong: "bg-mastery-strong",
+  partly: "bg-mastery-ok",
+  not_yet: "bg-mastery-weak",
 };
 
 function SessionAnswers({ s }: { s: SessionSummary }) {
@@ -59,7 +65,10 @@ function SessionAnswers({ s }: { s: SessionSummary }) {
                   {name && <span className="mt-0.5 block text-xs text-ink-faint capitalize">{name}</span>}
                 </span>
                 {band ? (
-                  <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${BAND_STYLE[band]}`}>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold text-ink ${BAND_STYLE[band]}`}
+                  >
+                    <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${BAND_DOT[band]}`} />
                     {ANSWER_BAND_LABEL[band]}
                   </span>
                 ) : (
