@@ -47,6 +47,7 @@ import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Home } from "./pages/Home";
 import { NotBuilt } from "./pages/NotBuilt";
 import { SignIn } from "./pages/SignIn";
+import { initTheme } from "./lib/theme";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
 // must render the same page (see theme.css).
@@ -152,18 +153,11 @@ const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M13", "M15"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
-  The theme, before the first paint. The frame's toggle used to be the only
-  thing that set it, so a screen rendered without the frame (sign-in, signed
-  out) fell through to the OS preference and arrived dark in a light app.
+  The theme, before the first paint (lib/theme.ts). The frame's toggle used to
+  be the only thing that set it, so a screen rendered without the frame
+  (sign-in, signed out) fell through to the OS preference. Dark by default.
 */
-try {
-  // `?theme=dark` - a link that opens the demo in the theme it is shown in.
-  const asked = new URLSearchParams(window.location.search).get("theme");
-  if (asked === "dark" || asked === "light") localStorage.setItem("ai.theme", asked);
-  document.documentElement.dataset.theme = localStorage.getItem("ai.theme") === "dark" ? "dark" : "light";
-} catch {
-  document.documentElement.dataset.theme = "light";
-}
+initTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {

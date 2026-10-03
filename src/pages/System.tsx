@@ -76,7 +76,7 @@ export function System() {
         </p>
       </header>
 
-      <div className="mt-7 grid gap-4 xl:grid-cols-2">
+      <div className="mt-7 grid gap-4 2xl:grid-cols-2">
         {BACKENDS.map((b, i) => {
           const h = health[i];
           const d = deps[i];

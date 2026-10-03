@@ -23,8 +23,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
-import { Icon, ROLE_LABEL, signOut, useSession, type IconName, type Session } from "@ai/core";
+import {
+  Icon,
+  ROLE_LABEL,
+  candidateIdOf,
+  signOut,
+  useSession,
+  type IconName,
+  type Session,
+} from "@ai/core";
+import { useHistory } from "@ai/m06";
 import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
+
+import { currentStreak, practiceDays } from "../lib/practice";
+import { toggleTheme, useTheme } from "../lib/theme";
+import { CommandPalette, type PaletteItem } from "./CommandPalette";
 
 export interface FrameNavItem {
   to: string;
@@ -38,6 +51,10 @@ export interface FrameNavGroup {
   label: string;
   items: FrameNavItem[];
 }
+
+/** Cmd on Apple keyboards, Ctrl elsewhere - the hint should be the key you press. */
+const MOD =
+  typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "\u2318" : "Ctrl ";
 
 function isActive(item: FrameNavItem, pathname: string): boolean {
   if (item.to === "/") return pathname === "/";
@@ -56,34 +73,58 @@ function initials(session: Session): string {
 }
 
 function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    try {
-      return (localStorage.getItem("ai.theme") as "light" | "dark") || "light";
-    } catch {
-      return "light";
-    }
-  });
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    try {
-      localStorage.setItem("ai.theme", theme);
-    } catch {
-      /* the choice still holds for this page */
-    }
-  }, [theme]);
-
+  const theme = useTheme();
   const next = theme === "dark" ? "light" : "dark";
   return (
     <button
       type="button"
-      onClick={() => setTheme(next)}
+      onClick={toggleTheme}
       aria-label={`Switch to ${next} theme`}
       title={`Switch to ${next} theme`}
       className="grid h-9 w-9 place-items-center rounded-lg text-ink-soft hover:bg-surface-sunken hover:text-ink"
     >
       <Icon name={theme === "dark" ? "sun" : "moon"} size={17} />
     </button>
+  );
+}
+
+/**
+ * The practice streak, always in view for a student - Duolingo's most
+ * effective retention surface is the counter you see before you decide what
+ * to do. Counted from sessions M06 recorded as started; nothing estimated.
+ */
+function StreakChip() {
+  const history = useHistory(120);
+  const streak = currentStreak(practiceDays(history.data ?? []));
+  if (!history.data) return null;
+  return (
+    <Link
+      to="/"
+      title={streak ? `${streak}-day practice streak` : "No practice streak yet - one interview starts it"}
+      className={`flex h-8 items-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold ${
+        streak
+          ? "border-reported-line bg-reported-soft text-reported"
+          : "border-line text-ink-faint hover:text-ink-soft"
+      }`}
+    >
+      <Flame lit={streak > 0} />
+      <span data-numeric>{streak}</span>
+    </Link>
+  );
+}
+
+/** A flame, drawn here: core's icon set has no flame, and one icon is not a release. */
+export function Flame({ lit, size = 14 }: { lit: boolean; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M12 2.5c.6 3.1 2.6 4.6 4.1 6.4 1.4 1.7 2.4 3.6 2.4 5.9a6.5 6.5 0 0 1-13 0c0-2.3 1-4 2.4-5.4.3 1.8 1.2 2.9 2.4 3.4-.6-3.6.2-7.3 1.7-10.3Z"
+        fill={lit ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth={lit ? 0 : 1.8}
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -118,7 +159,7 @@ function AccountCard() {
   const label = session.name ?? ROLE_LABEL[session.role];
 
   return (
-    <div className="m-3 rounded-xl border border-rail-line bg-white/[0.03] p-3">
+    <div className="m-3 rounded-xl border border-rail-line bg-rail-hover p-3">
       <div className="flex items-center gap-3">
         <span
           aria-hidden
@@ -137,7 +178,7 @@ function AccountCard() {
         <Link
           to="/signin"
           state={{ from: location.pathname }}
-          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-white/[0.06] hover:text-rail-ink"
+          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-rail-active hover:text-rail-ink"
         >
           <Icon name="users" size={14} />
           Switch
@@ -148,7 +189,7 @@ function AccountCard() {
             signOut();
             navigate("/signin");
           }}
-          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-white/[0.06] hover:text-rail-ink"
+          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-rail-active hover:text-rail-ink"
         >
           <Icon name="arrowLeft" size={14} />
           Sign out
@@ -167,8 +208,8 @@ function RailLink({ item, pathname }: { item: FrameNavItem; pathname: string }) 
       className={[
         "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm",
         active
-          ? "bg-white/[0.08] font-medium text-rail-ink"
-          : "text-rail-ink-soft hover:bg-white/[0.05] hover:text-rail-ink",
+          ? "bg-rail-active font-medium text-rail-ink"
+          : "text-rail-ink-soft hover:bg-rail-hover hover:text-rail-ink",
       ].join(" ")}
     >
       {active && (
@@ -221,6 +262,76 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
   const sections = rail?.sections ?? [];
   const items = groups.flatMap((g) => g.items);
   const current = items.find((item) => isActive(item, location.pathname));
+
+  // Cmd+K / Ctrl+K anywhere; "/" when not already typing.
+  const [palette, setPalette] = useState(false);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const typing =
+        event.target instanceof HTMLElement &&
+        (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName));
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPalette((open) => !open);
+      } else if (event.key === "/" && !typing) {
+        event.preventDefault();
+        setPalette(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const navigate = useNavigate();
+  const paletteItems: PaletteItem[] = [
+    ...items.map((item) => ({
+      id: `go:${item.to}`,
+      group: "Go to",
+      label: item.label,
+      icon: item.icon,
+      run: () => navigate(item.to),
+    })),
+    {
+      id: "do:mock",
+      group: "Actions",
+      label: "Start a mock interview",
+      icon: "mic",
+      keywords: "practise practice interview new",
+      run: () => navigate("/mock"),
+    },
+    {
+      id: "do:resume",
+      group: "Actions",
+      label: "Upload a resume",
+      icon: "document",
+      keywords: "cv add",
+      run: () => navigate("/resume"),
+    },
+    {
+      id: "do:jd",
+      group: "Actions",
+      label: "Paste a job description",
+      icon: "listChecks",
+      keywords: "jd posting drive role",
+      run: () => navigate("/jd"),
+    },
+    {
+      id: "do:theme",
+      group: "Actions",
+      label: "Toggle light / dark",
+      icon: "sun",
+      keywords: "theme dark light mode appearance",
+      run: toggleTheme,
+    },
+    {
+      id: "do:switch",
+      group: "Actions",
+      label: "Switch person",
+      icon: "users",
+      keywords: "sign in account login role",
+      run: () => navigate("/signin", { state: { from: location.pathname } }),
+    },
+  ];
 
   return (
     <HostShellContext.Provider value={host}>
@@ -281,8 +392,8 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
                             [
                               "flex h-8 items-center gap-2 rounded-lg px-3 text-sm",
                               on
-                                ? "bg-white/[0.08] text-rail-ink"
-                                : "text-rail-ink-soft hover:bg-white/[0.05] hover:text-rail-ink",
+                                ? "bg-rail-active text-rail-ink"
+                                : "text-rail-ink-soft hover:bg-rail-hover hover:text-rail-ink",
                             ].join(" ")
                           }
                         >
@@ -319,7 +430,25 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
                   <span className="truncate font-medium text-ink">{current.label}</span>
                 </div>
               )}
-              <div className="ml-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPalette(true)}
+                className="ml-auto hidden h-9 w-72 items-center gap-2.5 rounded-lg border border-line bg-surface px-3 text-sm text-ink-faint hover:border-line-strong hover:text-ink-soft md:flex"
+              >
+                <Icon name="search" size={15} />
+                <span className="flex-1 text-left">Search or jump to...</span>
+                <span className="kbd">{MOD}K</span>
+              </button>
+              <div className="ml-auto flex items-center gap-1.5 md:ml-2">
+                <button
+                  type="button"
+                  onClick={() => setPalette(true)}
+                  aria-label="Search"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-ink-soft hover:bg-surface-sunken md:hidden"
+                >
+                  <Icon name="search" size={17} />
+                </button>
+                {candidateIdOf(session) && <StreakChip />}
                 <ThemeToggle />
                 {session && (
                   <Link
@@ -365,6 +494,7 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
           </main>
         </div>
       </div>
+      <CommandPalette open={palette} onClose={() => setPalette(false)} items={paletteItems} />
     </HostShellContext.Provider>
   );
 }

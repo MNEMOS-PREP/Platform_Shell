@@ -98,46 +98,49 @@
      The point of the change: canvas is far enough below surface that a panel
      is legible as a raised object rather than as a rectangle of the same
      colour with a faint outline. */
-  --color-canvas: oklch(0.982 0.003 280);
+  --color-canvas: oklch(0.986 0.002 275);
   --color-surface: oklch(1 0 0);
-  --color-surface-sunken: oklch(0.966 0.005 280);
-  --color-line: oklch(0.917 0.007 280);
-  --color-line-strong: oklch(0.845 0.012 280);
+  --color-surface-sunken: oklch(0.968 0.004 275);
+  --color-line: oklch(0.918 0.006 275);
+  --color-line-strong: oklch(0.855 0.01 275);
 
-  --color-ink: oklch(0.19 0.02 280);
-  --color-ink-soft: oklch(0.44 0.018 280);
-  --color-ink-faint: oklch(0.565 0.016 280);
+  --color-ink: oklch(0.18 0.016 275);
+  --color-ink-soft: oklch(0.44 0.016 275);
+  --color-ink-faint: oklch(0.56 0.014 275);
 
   /* ── brand ──────────────────────────────────────────────────────────────
      Enough chroma to survive being a 32px filled square in a dark rail, and
      dark enough to hold white text at AA. */
-  --color-brand: oklch(0.55 0.235 283);
-  --color-brand-hover: oklch(0.49 0.24 283);
-  --color-brand-soft: oklch(0.962 0.03 283);
-  --color-brand-line: oklch(0.85 0.08 283);
+  --color-brand: oklch(0.535 0.2 279);
+  --color-brand-hover: oklch(0.475 0.205 279);
+  --color-brand-soft: oklch(0.965 0.024 279);
+  --color-brand-line: oklch(0.865 0.06 279);
   /* The far end of the brand gradient (logo, primary actions, hero words).
      Decoration only: nothing in the product MEANS "accent". */
-  --color-accent: oklch(0.68 0.16 225);
+  --color-accent: oklch(0.66 0.14 240);
 
   /* ── the rail ───────────────────────────────────────────────────────────
      Deep indigo rather than neutral charcoal. It is the only chrome that is
      always on screen, and a grey column beside a grey page is what made the
      old layout read as unfinished. */
-  --color-rail: oklch(0.165 0.014 280);
-  --color-rail-line: oklch(0.255 0.016 280);
-  --color-rail-ink: oklch(0.965 0.004 280);
-  --color-rail-ink-soft: oklch(0.705 0.014 280);
+  --color-rail: oklch(0.972 0.003 275);
+  --color-rail-line: oklch(0.918 0.006 275);
+  --color-rail-ink: oklch(0.18 0.016 275);
+  --color-rail-ink-soft: oklch(0.47 0.015 275);
+  /* Rail states as tokens, not `bg-white/8`: the rail is light in light mode. */
+  --color-rail-hover: oklch(0.18 0.016 275 / 0.045);
+  --color-rail-active: oklch(0.18 0.016 275 / 0.075);
 
   /* ── depth ──────────────────────────────────────────────────────────────
      Small, tight, and actually present. `--shadow-card: none` is what made
      every panel sit flat in the page. */
   --shadow-card:
-    0 1px 2px oklch(0.19 0.02 280 / 0.04), 0 1px 1px oklch(0.19 0.02 280 / 0.03);
+    0 1px 2px oklch(0.18 0.016 275 / 0.045);
   --shadow-raised:
-    0 1px 2px oklch(0.19 0.02 280 / 0.05), 0 16px 36px -14px oklch(0.19 0.02 280 / 0.2);
-  --shadow-glow: 0 8px 24px -8px oklch(0.55 0.235 283 / 0.6);
+    0 1px 2px oklch(0.18 0.016 275 / 0.05), 0 12px 32px -12px oklch(0.18 0.016 275 / 0.16);
+  --shadow-glow: 0 6px 20px -6px oklch(0.535 0.2 279 / 0.5);
 
-  --radius-panel: 1rem;
+  --radius-panel: 0.875rem;
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* ── M13's evidence marks ───────────────────────────────────────────────
@@ -146,6 +149,17 @@
   --color-quote: oklch(0.948 0.062 156);
   --color-quote-line: oklch(0.63 0.15 156);
   --color-quote-active: oklch(0.902 0.1 156);
+
+  /* ── M06's conversation ─────────────────────────────────────────────────
+     Module-invented and load-bearing, like M13's marks above: the interview
+     room's measure and its question size. M06 was mounted without them, so
+     until 2026-10-03 the room ran the full width of the window in the shell
+     with every line the same size - the interviewer indistinguishable from
+     the student. */
+  --container-conversation: 46rem;
+  --text-question: 1.1875rem;
+  --text-question--line-height: 1.75rem;
+  --text-question--letter-spacing: -0.012em;
 
   --color-blocked: oklch(0.951 0.034 25);
   --color-blocked-line: oklch(0.72 0.11 25);
@@ -160,30 +174,34 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --color-canvas: oklch(0.145 0.012 280);
-    --color-surface: oklch(0.187 0.014 280);
-    --color-surface-sunken: oklch(0.165 0.013 280);
-    --color-line: oklch(0.275 0.016 280);
-    --color-line-strong: oklch(0.37 0.02 280);
+    --color-canvas: oklch(0.135 0.008 275);
+    --color-surface: oklch(0.168 0.009 275);
+    --color-surface-sunken: oklch(0.152 0.008 275);
+    --color-line: oklch(1 0 0 / 0.08);
+    --color-line-strong: oklch(1 0 0 / 0.15);
 
     /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
        the brightest thing on a dark screen. */
-    --color-rail: oklch(0.122 0.01 280);
-    --color-rail-line: oklch(0.225 0.014 280);
+    --color-rail: oklch(0.118 0.007 275);
+    --color-rail-line: oklch(1 0 0 / 0.065);
+    --color-rail-ink: oklch(0.965 0.004 275);
+    --color-rail-ink-soft: oklch(0.68 0.012 275);
+    --color-rail-hover: oklch(1 0 0 / 0.045);
+    --color-rail-active: oklch(1 0 0 / 0.075);
 
-    --color-ink: oklch(0.958 0.005 280);
-    --color-ink-soft: oklch(0.745 0.012 280);
-    --color-ink-faint: oklch(0.615 0.014 280);
+    --color-ink: oklch(0.965 0.004 275);
+    --color-ink-soft: oklch(0.75 0.01 275);
+    --color-ink-faint: oklch(0.615 0.012 275);
 
-    --color-brand: oklch(0.71 0.17 283);
-    --color-brand-hover: oklch(0.78 0.15 283);
-    --color-brand-soft: oklch(0.262 0.07 283);
-    --color-brand-line: oklch(0.4 0.11 283);
-    --color-accent: oklch(0.75 0.13 225);
+    --color-brand: oklch(0.575 0.19 279);
+    --color-brand-hover: oklch(0.63 0.18 279);
+    --color-brand-soft: oklch(0.235 0.06 279);
+    --color-brand-line: oklch(0.4 0.11 279);
+    --color-accent: oklch(0.72 0.12 235);
 
-    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.34);
-    --shadow-raised: 0 2px 6px oklch(0 0 0 / 0.4), 0 18px 44px -14px oklch(0 0 0 / 0.6);
-    --shadow-glow: 0 8px 26px -8px oklch(0.71 0.17 283 / 0.55);
+    --shadow-card: 0 0 0 0 transparent;
+    --shadow-raised: 0 16px 40px -16px oklch(0 0 0 / 0.7);
+    --shadow-glow: 0 8px 28px -8px oklch(0.575 0.19 279 / 0.65);
 
     --color-quote: oklch(0.272 0.055 156);
     --color-quote-line: oklch(0.66 0.14 156);
@@ -222,14 +240,15 @@
      tint a panel. Fixed, so it does not scroll away as a stripe. */
   body {
     background:
-      radial-gradient(1100px 520px at 12% -10%, oklch(0.55 0.235 283 / 0.075), transparent 62%),
-      radial-gradient(900px 460px at 95% -14%, oklch(0.68 0.16 225 / 0.065), transparent 60%),
+      radial-gradient(1000px 480px at 30% -12%, oklch(0.535 0.2 279 / 0.05), transparent 62%),
       var(--color-canvas);
     background-attachment: fixed;
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 0.9375rem;
-    letter-spacing: -0.006em;
+    letter-spacing: -0.008em;
+    /* Geist's single-storey a and tabular-friendly figures read as product UI. */
+    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -237,8 +256,7 @@
 
   :root[data-theme="dark"] body {
     background:
-      radial-gradient(1100px 520px at 12% -10%, oklch(0.6 0.2 283 / 0.16), transparent 62%),
-      radial-gradient(900px 460px at 95% -14%, oklch(0.62 0.14 225 / 0.1), transparent 60%),
+      radial-gradient(900px 420px at 40% -14%, oklch(0.575 0.19 279 / 0.13), transparent 64%),
       var(--color-canvas);
     background-attachment: fixed;
   }
@@ -261,7 +279,7 @@
   select,
   textarea {
     transition-property: color, background-color, border-color, box-shadow, opacity;
-    transition-duration: 150ms;
+    transition-duration: 140ms;
     transition-timing-function: var(--ease-out-soft);
   }
 
@@ -355,10 +373,41 @@
       box-shadow 150ms var(--ease-out-soft);
   }
 
+  :root[data-theme="dark"] .panel {
+    background-image: linear-gradient(180deg, oklch(1 0 0 / 0.028), transparent 140px);
+  }
+
+  /* A keyboard key, for shortcut hints (⌘K, ↑↓, ↵). */
+  .kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.3rem;
+    border: 1px solid var(--color-line-strong);
+    border-bottom-width: 2px;
+    border-radius: 0.375rem;
+    background: var(--color-surface);
+    color: var(--color-ink-soft);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1;
+  }
+
   /* The page arrives rather than appears: one short rise, once per route. */
   .page-in {
-    animation: page-in 280ms var(--ease-out-soft) both;
+    animation: page-in 220ms var(--ease-out-soft) both;
   }
+
+  /* A sibling list arriving: each item 40ms after the one before. */
+  .stagger > * {
+    animation: page-in 260ms var(--ease-out-soft) both;
+  }
+  .stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger > *:nth-child(6) { animation-delay: 200ms; }
 
   @keyframes page-in {
     from {
@@ -451,4 +500,58 @@
     linear-gradient(to bottom, color-mix(in oklch, var(--color-line) 70%, transparent) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 75%);
+}
+
+/*
+  M06's transcript primitives, ported with its tokens (the shell imports no
+  module stylesheet - see the head of this file). The three dots are spec §8:
+  under 800 ms nothing changes; past it, dots and no text.
+*/
+@layer components {
+  .turn-interviewer {
+    font-size: var(--text-question);
+    line-height: var(--text-question--line-height);
+    letter-spacing: var(--text-question--letter-spacing);
+    color: var(--color-ink);
+  }
+
+  .turn-candidate {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+    color: var(--color-ink);
+  }
+
+  .thinking-dot {
+    display: inline-block;
+    height: 0.375rem;
+    width: 0.375rem;
+    border-radius: 9999px;
+    background: var(--color-session-thinking);
+    animation: thinking 1.4s ease-in-out infinite;
+  }
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes thinking {
+    0%, 100% { opacity: 0.25; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-2px); }
+  }
+
+  .status-dot {
+    display: inline-block;
+    height: 0.5rem;
+    width: 0.5rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+  }
+
+  /* A live status breathes; a paused one does not. */
+  .status-dot-live {
+    box-shadow: 0 0 0 0 currentColor;
+    animation: status-pulse 2s ease-out infinite;
+  }
+  @keyframes status-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in oklch, currentColor 55%, transparent); }
+    100% { box-shadow: 0 0 0 7px transparent; }
+  }
 }
