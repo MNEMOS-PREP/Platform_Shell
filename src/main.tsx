@@ -21,10 +21,9 @@
  * modules' routes and every internal `navigate()` with them. Every path is
  * disjoint except two cases, so they are mounted flat and the two are resolved:
  *
- *   · M01 and M02 both claim the index route. The shell owns "/", so their
- *     entry screens are mounted by name at /resume and /jd instead. Both
- *     modules export the components for exactly this, and their own
- *     standalone builds still route to them through m01Routes / m02Routes.
+ *   · M01 and M02 both claimed the index route. Since 2026-10-04 their front
+ *     doors are /resume and /jd everywhere (each standalone app redirects its
+ *     index there), so both trees mount whole like the others.
  *
  *   · All four claim /deps. Only M13's is mounted; the shell's own /system
  *     page reads every module at once, which is the view that is actually
@@ -36,8 +35,8 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { MODULES, candidateIdOf, isStaff, useSession } from "@ai/core";
-import { IngestPage, ResumePage } from "@ai/m01";
-import { JdPage, ParsePage } from "@ai/m02";
+import { m01Routes } from "@ai/m01";
+import { m02Routes } from "@ai/m02";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
 import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m13Routes } from "@ai/m13";
@@ -283,15 +282,13 @@ function App() {
         <Route path="/help" element={<Help />} />
         <Route path="/system" element={<StaffOnly><System /></StaffOnly>} />
 
-        {/* M01 — entry screen by name, the rest of the tree as authored. */}
-        <Route path="/resume" element={<IngestPage />} />
-        <Route path="/resumes/:resumeId" element={<ResumePage />} />
-
-        {/* M02 — same shape. */}
-        <Route path="/jd" element={<ParsePage />} />
-        <Route path="/jds/:jdId" element={<JdPage />} />
-
-        {/* M04, M06, M13 and M15 mount whole: no index route, no collision. */}
+        {/* Every module mounts whole. M01 and M02 used to claim the index, so
+            only two of their screens were mounted by name and every other page
+            they link to — a resume's "check against a job", its audit, the
+            JD match — bounced to Today. Since 2026-10-04 their front doors
+            live at /resume and /jd in both places. */}
+        {m01Routes}
+        {m02Routes}
         {m04Routes}
         {m06Routes}
         {m13Routes}
