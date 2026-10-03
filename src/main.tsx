@@ -30,7 +30,7 @@
  *     page reads every module at once, which is the view that is actually
  *     worth having and that no single module can render.
  */
-import { StrictMode, useEffect, useRef } from "react";
+import { Component, StrictMode, useEffect, useRef, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -43,30 +43,43 @@ import { m06Routes } from "@ai/m06";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
 
-import { Frame, type FrameNavItem } from "./ui/Frame";
+import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Home } from "./pages/Home";
 import { NotBuilt } from "./pages/NotBuilt";
 import { SignIn } from "./pages/SignIn";
 import { System } from "./pages/System";
+// The typeface, bundled rather than fetched: a demo laptop with no network
+// must render the same page (see theme.css).
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 // One stylesheet, one token set. See theme.css for why none of the module
 // theme files are imported here.
 import "./theme.css";
 
 /*
-  In journey order rather than module order. A student reads this rail top to
-  bottom the first time and that order is the product's argument: what you have
-  said about yourself, what the job asks, how an answer scores, who is hiring.
-  `match` keeps the parent lit on child routes - /resumes/:id belongs to Resume.
+  Grouped by what the student is doing, in journey order within each group: a
+  student reads the rail top to bottom the first time and that order is the
+  product's argument. `match` keeps the parent lit on child routes -
+  /resumes/:id belongs to Resume.
 */
-const NAV: FrameNavItem[] = [
-  { to: "/", label: "Overview", glyph: "◆" },
-  { to: "/resume", label: "Resume", glyph: "▤", match: "/resumes" },
-  { to: "/jd", label: "Job description", glyph: "▦", match: "/jds" },
-  { to: "/mock", label: "Mock interview", glyph: "◈" },
-  { to: "/score", label: "Evaluation", glyph: "◎", match: "/turns" },
-  { to: "/skills", label: "Skill graph", glyph: "◇" },
-  { to: "/companies", label: "Companies", glyph: "△" },
-  { to: "/system", label: "System", glyph: "○" },
+const NAV: FrameNavGroup[] = [
+  {
+    label: "Prepare",
+    items: [
+      { to: "/", label: "Overview", icon: "compass" },
+      { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
+      { to: "/jd", label: "Job description", icon: "listChecks", match: "/jds" },
+      { to: "/companies", label: "Companies", icon: "building" },
+    ],
+  },
+  {
+    label: "Practise",
+    items: [
+      { to: "/mock", label: "Mock interview", icon: "mic" },
+      { to: "/score", label: "Evaluation", icon: "target", match: "/turns" },
+      { to: "/skills", label: "Skill graph", icon: "graph" },
+    ],
+  },
 ];
 
 /*
@@ -76,14 +89,59 @@ const NAV: FrameNavItem[] = [
   what the page is, and the backend's 403, rather than a 404.
 */
 const PLACEMENT_NAV: FrameNavItem[] = [
-  { to: "/review", label: "Review queue", glyph: "✓" },
-  { to: "/ops", label: "Operations", glyph: "⚙" },
+  { to: "/review", label: "Review queue", icon: "shield" },
+  { to: "/ops", label: "Operations", icon: "zap" },
 ];
 const ADMIN_NAV: FrameNavItem[] = [
-  { to: "/disputes", label: "Disputes", glyph: "⚑" },
-  { to: "/raters", label: "Raters", glyph: "≡" },
-  { to: "/outbox", label: "Evaluation outbox", glyph: "⇢" },
+  { to: "/disputes", label: "Disputes", icon: "scales" },
+  { to: "/raters", label: "Raters", icon: "users" },
+  { to: "/outbox", label: "Evaluation outbox", icon: "send" },
 ];
+const PLATFORM_NAV: FrameNavItem[] = [{ to: "/system", label: "System", icon: "monitor" }];
+
+/**
+ * One module's crash is one screen's problem. Without this, an exception in
+ * any mounted module unmounted the whole tree and left a blank page - which is
+ * what M02's job-description screen did in the shell until 2026-10-03. Keyed
+ * on the route, so leaving the broken screen clears it.
+ */
+class ScreenBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("A screen failed:", error, info.componentStack);
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="mx-auto max-w-2xl py-16">
+        <div className="panel p-8">
+          <p className="rule-label">Something broke on this screen</p>
+          <h1 className="mt-2 text-title font-semibold text-ink">This screen hit an error.</h1>
+          <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+            The rest of the platform is fine — pick another screen from the menu, or reload
+            this one.
+          </p>
+          <pre className="mt-5 overflow-x-auto rounded-lg bg-surface-sunken p-3 font-mono text-xs text-ink-soft">
+            {this.state.error.message}
+          </pre>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="bg-brand-gradient mt-5 rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-glow"
+          >
+            Reload
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
 
 /**
  * Modules with no UI yet get a named placeholder rather than a dead link.
@@ -92,6 +150,20 @@ const ADMIN_NAV: FrameNavItem[] = [
  */
 const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M13", "M15"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
+
+/*
+  The theme, before the first paint. The frame's toggle used to be the only
+  thing that set it, so a screen rendered without the frame (sign-in, signed
+  out) fell through to the OS preference and arrived dark in a light app.
+*/
+try {
+  // `?theme=dark` - a link that opens the demo in the theme it is shown in.
+  const asked = new URLSearchParams(window.location.search).get("theme");
+  if (asked === "dark" || asked === "light") localStorage.setItem("ai.theme", asked);
+  document.documentElement.dataset.theme = localStorage.getItem("ai.theme") === "dark" ? "dark" : "light";
+} catch {
+  document.documentElement.dataset.theme = "light";
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -123,15 +195,23 @@ function App() {
   if (!session && location.pathname !== "/signin") {
     return <Navigate to="/signin" replace state={{ from: location.pathname }} />;
   }
+  if (!session) {
+    return <SignIn />;
+  }
 
-  const nav = [
-    ...NAV,
+  const staff = [
     ...(isStaff(session) ? PLACEMENT_NAV : []),
     ...(session?.role === "admin" ? ADMIN_NAV : []),
   ];
+  const nav: FrameNavGroup[] = [
+    ...NAV,
+    ...(staff.length ? [{ label: "Staff", items: staff }] : []),
+    { label: "Platform", items: PLATFORM_NAV },
+  ];
 
   return (
-    <Frame nav={nav}>
+    <Frame groups={nav}>
+      <ScreenBoundary key={`${who}${location.pathname}`}>
       <Routes key={who}>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/" element={<Home />} />
@@ -157,6 +237,7 @@ function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ScreenBoundary>
     </Frame>
   );
 }

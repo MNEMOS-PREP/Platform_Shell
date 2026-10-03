@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 
 /**
  * The platform shell — PORTS.txt reserves :5173 for "every built module UI
@@ -140,8 +140,58 @@ for (const [mod, port] of Object.entries(API)) {
   };
 }
 
+/*
+  `/v1/deps` is the one path every module serves - each answers "what am I
+  missing" for itself - so the noun table above cannot route it, and until
+  2026-10-03 every screen got M13's answer. M02's company picker read M13's
+  shape, called `.find` on it and blanked the whole job-description screen;
+  M15's operations page listed M13's upstreams as its own.
+
+  So it is routed by the SCREEN asking. A fetch carries its page in Referer,
+  and a page's first path segment belongs to one module. A screen not listed
+  here keeps the old route.
+*/
+const SCREEN_OWNER: Record<string, Mod> = {
+  resume: "m01",
+  resumes: "m01",
+  jd: "m02",
+  jds: "m02",
+  skills: "m04",
+  mock: "m06",
+  score: "m13",
+  turns: "m13",
+  rubrics: "m13",
+  calibration: "m13",
+  disputes: "m13",
+  raters: "m13",
+  outbox: "m13",
+  companies: "m15",
+  review: "m15",
+  ops: "m15",
+  me: "m15",
+};
+
+const depsByScreen: Plugin = {
+  name: "deps-by-screen",
+  configureServer(server) {
+    // Runs before Vite's own middleware, so the proxy sees the rewritten path.
+    server.middlewares.use((req, _res, next) => {
+      if (req.url?.startsWith("/v1/deps") && req.headers.referer) {
+        try {
+          const screen = new URL(req.headers.referer).pathname.split("/")[1] ?? "";
+          const mod = SCREEN_OWNER[screen];
+          if (mod) req.url = `/sys/${mod}${req.url}`;
+        } catch {
+          /* a malformed Referer keeps the default route */
+        }
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), depsByScreen],
   resolve: {
     /*
       Every module repo has its own node_modules with its own React. Without

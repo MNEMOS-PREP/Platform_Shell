@@ -1,65 +1,108 @@
 /**
  * The one frame the product has.
  *
- * ── Why this replaces core's Layout ─────────────────────────────────────────
+ * ── Shape ───────────────────────────────────────────────────────────────────
+ * A rail on the left, permanently, and a content area that uses the window,
+ * with a glass bar across its top that says where you are. The rail is dark
+ * for the reason M15 gave when it built one: it pins the chrome to one edge
+ * and leaves the reading column the only bright surface.
  *
- * `@ai/core`'s `Layout` is a centred `max-w-5xl` column with a top bar. That is
- * 1024px of a 1920px window - the content sits in just over half the screen
- * with dead margin either side, and every module page inherits it because none
- * of them declare a container of their own. It was the right call when a module
- * ran alone on its own port and the top bar had three links in it. It is the
- * wrong call for an app with a handful of sections and a contextual sub-nav.
- *
- * So: a rail on the left, permanently, and a content area that uses the window.
- * The rail is dark for the reason M15 gave when it built one - it pins the
- * chrome to one edge and leaves the reading column the only bright surface.
+ * ── 2026-10-03 ──────────────────────────────────────────────────────────────
+ * Rebuilt for the product to read as current rather than as a 1990s intranet:
+ * real icons from core's set instead of ◆ ▤ ◈ glyphs (which every OS draws
+ * differently), navigation grouped by what the student is doing, an account
+ * card with who is signed in, and a top bar that names the screen. Nothing a
+ * module renders changed; this is chrome.
  *
  * ── The contextual half ─────────────────────────────────────────────────────
- *
  * M15 publishes the current company and its sections rather than drawing them
  * (see that module's `ui/embed.ts`), so the rail carries platform navigation
- * above the rule and wherever-you-are navigation below it. One rail, two
- * scopes, and the sub-nav does not disappear just because the module is no
- * longer running on its own port.
+ * above the rule and wherever-you-are navigation below it.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 
-import { ROLE_LABEL, signOut, useSession } from "@ai/core";
+import { Icon, ROLE_LABEL, signOut, useSession, type IconName, type Session } from "@ai/core";
 import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
 
 export interface FrameNavItem {
   to: string;
   label: string;
-  /** A single glyph. Never the only signal - the label is always present. */
-  glyph: string;
+  icon: IconName;
   /** Matched as a prefix so child routes keep the parent lit. */
   match?: string;
 }
 
+export interface FrameNavGroup {
+  label: string;
+  items: FrameNavItem[];
+}
+
+function isActive(item: FrameNavItem, pathname: string): boolean {
+  if (item.to === "/") return pathname === "/";
+  return pathname === item.to || pathname.startsWith(`${item.to}/`) ||
+    (item.match ? pathname.startsWith(item.match) : false);
+}
+
+function initials(session: Session): string {
+  const source = session.name ?? ROLE_LABEL[session.role];
+  return source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+}
+
 function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">(
-    () => (localStorage.getItem("ai.theme") as "light" | "dark") || "light",
-  );
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      return (localStorage.getItem("ai.theme") as "light" | "dark") || "light";
+    } catch {
+      return "light";
+    }
+  });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("ai.theme", theme);
+    try {
+      localStorage.setItem("ai.theme", theme);
+    } catch {
+      /* the choice still holds for this page */
+    }
   }, [theme]);
 
+  const next = theme === "dark" ? "light" : "dark";
   return (
     <button
       type="button"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      title={theme === "dark" ? "Switch to light" : "Switch to dark"}
-      aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-      className="grid h-7 w-7 place-items-center rounded-md text-rail-ink-soft transition-colors hover:bg-white/10 hover:text-rail-ink"
+      onClick={() => setTheme(next)}
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to ${next} theme`}
+      className="grid h-9 w-9 place-items-center rounded-lg text-ink-soft hover:bg-surface-sunken hover:text-ink"
     >
-      <span aria-hidden className="text-xs">
-        {theme === "dark" ? "☀" : "☾"}
-      </span>
+      <Icon name={theme === "dark" ? "sun" : "moon"} size={17} />
     </button>
+  );
+}
+
+function Logo() {
+  return (
+    <Link to="/" className="flex min-w-0 items-center gap-3">
+      <span
+        aria-hidden
+        className="bg-brand-gradient grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-glow"
+      >
+        <Icon name="sparkles" size={18} />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[0.9375rem] font-semibold tracking-tight text-rail-ink">
+          AI Interviewer
+        </span>
+        <span className="block truncate text-[0.6875rem] text-rail-ink-soft">Placement prep</span>
+      </span>
+    </Link>
   );
 }
 
@@ -67,38 +110,36 @@ function ThemeToggle() {
  * Who is signed in, always visible. A demo switches people mid-flow, and a
  * screen that silently answers as somebody else is the confusion this stops.
  */
-function SessionChip({ compact = false }: { compact?: boolean }) {
+function AccountCard() {
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
   if (!session) return null;
   const label = session.name ?? ROLE_LABEL[session.role];
 
-  if (compact) {
-    return (
-      <Link
-        to="/signin"
-        state={{ from: location.pathname }}
-        className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft"
-      >
-        {label}
-      </Link>
-    );
-  }
-
   return (
-    <div className="mt-auto border-t border-rail-line px-4 py-3">
-      <p className="text-[0.6875rem] uppercase tracking-wide text-rail-ink-soft">Signed in as</p>
-      <p className="mt-1 truncate text-sm font-semibold text-rail-ink">{label}</p>
-      <p className="provenance mt-0.5 truncate text-rail-ink-soft">
-        {ROLE_LABEL[session.role]} · {session.subject.slice(0, 8)}
-      </p>
-      <div className="mt-2.5 flex gap-3 text-xs">
+    <div className="m-3 rounded-xl border border-rail-line bg-white/[0.03] p-3">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="bg-brand-gradient grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
+        >
+          {initials(session)}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-rail-ink">{label}</span>
+          <span className="block truncate font-mono text-[0.6875rem] text-rail-ink-soft">
+            {ROLE_LABEL[session.role]} · {session.subject.slice(0, 8)}
+          </span>
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-1.5">
         <Link
           to="/signin"
           state={{ from: location.pathname }}
-          className="text-rail-ink-soft underline-offset-2 hover:text-rail-ink hover:underline"
+          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-white/[0.06] hover:text-rail-ink"
         >
+          <Icon name="users" size={14} />
           Switch
         </Link>
         <button
@@ -107,8 +148,9 @@ function SessionChip({ compact = false }: { compact?: boolean }) {
             signOut();
             navigate("/signin");
           }}
-          className="text-rail-ink-soft underline-offset-2 hover:text-rail-ink hover:underline"
+          className="flex h-8 items-center justify-center gap-1.5 rounded-lg text-xs text-rail-ink-soft hover:bg-white/[0.06] hover:text-rail-ink"
         >
+          <Icon name="arrowLeft" size={14} />
           Sign out
         </button>
       </div>
@@ -116,17 +158,38 @@ function SessionChip({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function railLink(isActive: boolean) {
-  return [
-    "group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors",
-    isActive
-      ? "bg-brand text-white shadow-glow"
-      : "text-rail-ink-soft hover:bg-white/8 hover:text-rail-ink",
-  ].join(" ");
+function RailLink({ item, pathname }: { item: FrameNavItem; pathname: string }) {
+  const active = isActive(item, pathname);
+  return (
+    <NavLink
+      to={item.to}
+      aria-current={active ? "page" : undefined}
+      className={[
+        "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm",
+        active
+          ? "bg-white/[0.08] font-medium text-rail-ink"
+          : "text-rail-ink-soft hover:bg-white/[0.05] hover:text-rail-ink",
+      ].join(" ")}
+    >
+      {active && (
+        <span
+          aria-hidden
+          className="bg-brand-gradient absolute top-1.5 bottom-1.5 left-0 w-[3px] rounded-full"
+        />
+      )}
+      <Icon
+        name={item.icon}
+        size={17}
+        className={active ? "text-rail-ink" : "text-rail-ink-soft group-hover:text-rail-ink"}
+      />
+      <span className="truncate">{item.label}</span>
+    </NavLink>
+  );
 }
 
-export function Frame({ nav, children }: { nav: FrameNavItem[]; children: ReactNode }) {
+export function Frame({ groups, children }: { groups: FrameNavGroup[]; children: ReactNode }) {
   const location = useLocation();
+  const session = useSession();
 
   // What the current module published into the rail, if anything.
   const [rail, setRail] = useState<RailPayload | null>(null);
@@ -156,148 +219,146 @@ export function Frame({ nav, children }: { nav: FrameNavItem[]; children: ReactN
   }, [location.pathname]);
 
   const sections = rail?.sections ?? [];
+  const items = groups.flatMap((g) => g.items);
+  const current = items.find((item) => isActive(item, location.pathname));
 
   return (
     <HostShellContext.Provider value={host}>
-      <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[16.5rem_minmax(0,1fr)]">
+      <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
         {/* ---------- rail ---------- */}
-        <aside className="sticky top-0 hidden h-screen flex-col border-r border-rail-line bg-rail lg:flex">
-          <div className="flex items-center gap-2.5 px-4 py-4">
-            <Link to="/" className="flex min-w-0 items-center gap-2.5">
-              <span
-                aria-hidden
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand text-sm font-bold text-white shadow-glow"
-              >
-                ai
-              </span>
-              <span className="truncate font-semibold tracking-tight text-rail-ink">
-                AI Interviewer
-              </span>
-            </Link>
-            <span className="ml-auto">
-              <ThemeToggle />
-            </span>
+        <aside className="sticky top-0 hidden h-dvh flex-col border-r border-rail-line bg-rail lg:flex">
+          <div className="px-4 pt-5 pb-4">
+            <Logo />
           </div>
 
-          <nav aria-label="Platform" className="mt-2 space-y-0.5 px-2.5">
-            {nav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) =>
-                  railLink(
-                    isActive || (item.match ? location.pathname.startsWith(item.match) : false),
-                  )
-                }
-              >
-                <span aria-hidden className="w-4 shrink-0 text-center text-xs opacity-80">
-                  {item.glyph}
-                </span>
-                <span className="truncate">{item.label}</span>
-              </NavLink>
+          <nav aria-label="Platform" className="flex-1 space-y-5 overflow-y-auto px-3 pt-2 pb-4">
+            {groups.map((group) => (
+              <div key={group.label}>
+                <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft/70 uppercase">
+                  {group.label}
+                </p>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <RailLink key={item.to} item={item} pathname={location.pathname} />
+                  ))}
+                </div>
+              </div>
             ))}
+
+            {/* ---------- what the current section published ---------- */}
+            {(rail?.context || sections.length > 0) && (
+              <div className="border-t border-rail-line pt-4">
+                {rail?.context && (
+                  <div className="px-3">
+                    <p className="truncate text-sm font-semibold text-rail-ink">{rail.context.title}</p>
+                    {rail.context.sub && (
+                      <p className="mt-0.5 truncate font-mono text-[0.6875rem] text-rail-ink-soft">
+                        {rail.context.sub}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {sections.length > 0 && (
+                  <div className="mt-2 space-y-0.5">
+                    {sections.map((item) =>
+                      item.disabledReason ? (
+                        <span
+                          key={item.to}
+                          title={item.disabledReason}
+                          className="flex h-8 cursor-not-allowed items-center gap-2 rounded-lg px-3 text-sm text-rail-ink-soft/45"
+                        >
+                          <span className="flex-1 truncate">{item.label}</span>
+                          <span aria-hidden className="text-[10px]">
+                            —
+                          </span>
+                        </span>
+                      ) : (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end
+                          className={({ isActive: on }) =>
+                            [
+                              "flex h-8 items-center gap-2 rounded-lg px-3 text-sm",
+                              on
+                                ? "bg-white/[0.08] text-rail-ink"
+                                : "text-rail-ink-soft hover:bg-white/[0.05] hover:text-rail-ink",
+                            ].join(" ")
+                          }
+                        >
+                          <span className="flex-1 truncate">{item.label}</span>
+                          {item.badge !== undefined && (
+                            <span className="font-mono text-[10px] opacity-70" data-numeric>
+                              {item.badge}
+                            </span>
+                          )}
+                        </NavLink>
+                      ),
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
-          {/* ---------- what the current section published ---------- */}
-          {(rail?.context || sections.length > 0) && (
-            <div className="mt-6 border-t border-rail-line px-4 pt-4">
-              {rail?.context && (
-                <>
-                  <p className="truncate text-sm font-semibold text-rail-ink">
-                    {rail.context.title}
-                  </p>
-                  {rail.context.sub && (
-                    <p className="provenance mt-0.5 truncate text-rail-ink-soft">
-                      {rail.context.sub}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {sections.length > 0 && (
-            <nav aria-label="Section" className="mt-3 space-y-0.5 px-2.5">
-              {sections.map((item) =>
-                item.disabledReason ? (
-                  <span
-                    key={item.to}
-                    title={item.disabledReason}
-                    className="flex cursor-not-allowed items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm text-rail-ink-soft/45"
-                  >
-                    <span className="flex-1 truncate">{item.label}</span>
-                    <span aria-hidden className="text-[10px]">
-                      —
-                    </span>
-                  </span>
-                ) : (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    end
-                    className={({ isActive }) => railLink(isActive)}
-                  >
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {item.badge !== undefined && (
-                      <span className="font-mono text-[10px] opacity-70" data-numeric>
-                        {item.badge}
-                      </span>
-                    )}
-                  </NavLink>
-                ),
-              )}
-            </nav>
-          )}
-
-          <SessionChip />
-          <p className="provenance border-t border-rail-line px-4 py-3 text-rail-ink-soft">
-            Every fact shows its source
-          </p>
+          <AccountCard />
         </aside>
 
         {/* ---------- content ---------- */}
         <div className="flex min-w-0 flex-col">
-          {/* The rail is hidden below lg, so the nav has to survive somewhere. */}
-          <div className="sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur lg:hidden">
-            <div className="flex items-center gap-3 px-4 py-2.5">
-              <Link to="/" className="flex items-center gap-2">
-                <span
-                  aria-hidden
-                  className="grid h-7 w-7 place-items-center rounded-md bg-brand text-xs font-bold text-white"
-                >
-                  ai
+          <header className="sticky top-0 z-30 border-b border-line/70 bg-canvas/75 backdrop-blur-xl">
+            <div className="flex h-14 items-center gap-3 px-4 md:px-8">
+              <Link to="/" className="flex items-center gap-2 lg:hidden" aria-label="Home">
+                <span className="bg-brand-gradient grid h-8 w-8 place-items-center rounded-lg text-white">
+                  <Icon name="sparkles" size={16} />
                 </span>
-                <span className="text-sm font-semibold text-ink">AI Interviewer</span>
               </Link>
-              <span className="ml-auto flex items-center gap-2">
-                <SessionChip compact />
+              {current && (
+                <div className="flex min-w-0 items-center gap-2 text-sm">
+                  <Icon name={current.icon} size={16} className="shrink-0 text-ink-faint" />
+                  <span className="truncate font-medium text-ink">{current.label}</span>
+                </div>
+              )}
+              <div className="ml-auto flex items-center gap-1">
                 <ThemeToggle />
-              </span>
+                {session && (
+                  <Link
+                    to="/signin"
+                    state={{ from: location.pathname }}
+                    title={`Signed in as ${session.name ?? ROLE_LABEL[session.role]} — switch`}
+                    className="bg-brand-gradient ml-1 grid h-8 w-8 place-items-center rounded-full text-[0.6875rem] font-semibold text-white lg:hidden"
+                  >
+                    {initials(session)}
+                  </Link>
+                )}
+              </div>
             </div>
+            {/* The rail is hidden below lg, so the nav has to survive somewhere. */}
             <nav
               aria-label="Platform"
-              className="flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none]"
+              className="flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none] lg:hidden"
             >
-              {nav.map((item) => (
+              {items.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === "/"}
-                  className={({ isActive }) =>
+                  className={() =>
                     [
-                      "shrink-0 rounded-lg px-2.5 py-1 text-sm transition-colors",
-                      isActive ? "bg-brand text-white" : "text-ink-soft hover:bg-surface-sunken",
+                      "flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-sm",
+                      isActive(item, location.pathname)
+                        ? "bg-brand text-white"
+                        : "text-ink-soft hover:bg-surface-sunken",
                     ].join(" ")
                   }
                 >
+                  <Icon name={item.icon} size={14} />
                   {item.label}
                 </NavLink>
               ))}
             </nav>
-          </div>
+          </header>
 
-          <main className="min-w-0 flex-1 px-5 py-8 md:px-9 md:py-10 xl:px-14">
+          <main key={location.pathname} className="page-in min-w-0 flex-1 px-5 py-8 md:px-10 md:py-10 xl:px-14">
             {/* Wide, but not edge-to-edge on an ultrawide - past about 1500px a
                 row of cards stops being scannable in one sweep. */}
             <div className="mx-auto w-full max-w-[92rem]">{children}</div>

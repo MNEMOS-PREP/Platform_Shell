@@ -59,21 +59,35 @@
 @source "../../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src";
 
 @theme {
+  /* ── typeface ───────────────────────────────────────────────────────────
+     Geist, bundled (`@fontsource-variable/geist`, imported in main.tsx) so a
+     demo laptop with no network renders the same page. Until 2026-10-03 no
+     face was loaded at all and Windows drew everything in Segoe UI - the
+     single largest reason the product read as dated. */
+  --font-sans: "Geist Variable", "Geist", "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "Cascadia Code", monospace;
+
+  /* Controls get a little more radius than Tailwind's default; panels get a
+     lot more (`--radius-panel`). Square corners are most of "1980s". */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+
   /* ── type ───────────────────────────────────────────────────────────────
      A real modular scale with negative tracking on the large sizes. The
      display size exists because the first line of a page should read like a
      headline rather than a slightly bigger card title. */
-  --text-display: 2.75rem;
-  --text-display--line-height: 1.06;
-  --text-display--letter-spacing: -0.032em;
+  --text-display: 3.25rem;
+  --text-display--line-height: 1.02;
+  --text-display--letter-spacing: -0.045em;
 
-  --text-title: 1.75rem;
-  --text-title--line-height: 1.16;
-  --text-title--letter-spacing: -0.022em;
+  --text-title: 2rem;
+  --text-title--line-height: 1.12;
+  --text-title--letter-spacing: -0.03em;
 
   --text-section: 1.0625rem;
   --text-section--line-height: 1.35;
-  --text-section--letter-spacing: -0.012em;
+  --text-section--letter-spacing: -0.016em;
 
   /* M13's transcript. The answer is read, not scanned. */
   --text-answer: 1.1875rem;
@@ -84,43 +98,46 @@
      The point of the change: canvas is far enough below surface that a panel
      is legible as a raised object rather than as a rectangle of the same
      colour with a faint outline. */
-  --color-canvas: oklch(0.964 0.005 266);
+  --color-canvas: oklch(0.982 0.003 280);
   --color-surface: oklch(1 0 0);
-  --color-surface-sunken: oklch(0.947 0.007 266);
-  --color-line: oklch(0.893 0.009 266);
-  --color-line-strong: oklch(0.808 0.014 266);
+  --color-surface-sunken: oklch(0.966 0.005 280);
+  --color-line: oklch(0.917 0.007 280);
+  --color-line-strong: oklch(0.845 0.012 280);
 
-  --color-ink: oklch(0.175 0.021 266);
-  --color-ink-soft: oklch(0.435 0.019 266);
-  --color-ink-faint: oklch(0.575 0.016 266);
+  --color-ink: oklch(0.19 0.02 280);
+  --color-ink-soft: oklch(0.44 0.018 280);
+  --color-ink-faint: oklch(0.565 0.016 280);
 
   /* ── brand ──────────────────────────────────────────────────────────────
      Enough chroma to survive being a 32px filled square in a dark rail, and
      dark enough to hold white text at AA. */
-  --color-brand: oklch(0.545 0.225 273);
-  --color-brand-hover: oklch(0.478 0.232 273);
-  --color-brand-soft: oklch(0.955 0.038 273);
-  --color-brand-line: oklch(0.825 0.095 273);
+  --color-brand: oklch(0.55 0.235 283);
+  --color-brand-hover: oklch(0.49 0.24 283);
+  --color-brand-soft: oklch(0.962 0.03 283);
+  --color-brand-line: oklch(0.85 0.08 283);
+  /* The far end of the brand gradient (logo, primary actions, hero words).
+     Decoration only: nothing in the product MEANS "accent". */
+  --color-accent: oklch(0.68 0.16 225);
 
   /* ── the rail ───────────────────────────────────────────────────────────
      Deep indigo rather than neutral charcoal. It is the only chrome that is
      always on screen, and a grey column beside a grey page is what made the
      old layout read as unfinished. */
-  --color-rail: oklch(0.208 0.032 269);
-  --color-rail-line: oklch(0.288 0.034 269);
-  --color-rail-ink: oklch(0.955 0.007 269);
-  --color-rail-ink-soft: oklch(0.702 0.024 269);
+  --color-rail: oklch(0.165 0.014 280);
+  --color-rail-line: oklch(0.255 0.016 280);
+  --color-rail-ink: oklch(0.965 0.004 280);
+  --color-rail-ink-soft: oklch(0.705 0.014 280);
 
   /* ── depth ──────────────────────────────────────────────────────────────
      Small, tight, and actually present. `--shadow-card: none` is what made
      every panel sit flat in the page. */
   --shadow-card:
-    0 1px 2px oklch(0.175 0.021 266 / 0.05), 0 1px 3px oklch(0.175 0.021 266 / 0.04);
+    0 1px 2px oklch(0.19 0.02 280 / 0.04), 0 1px 1px oklch(0.19 0.02 280 / 0.03);
   --shadow-raised:
-    0 2px 4px oklch(0.175 0.021 266 / 0.06), 0 14px 36px -12px oklch(0.175 0.021 266 / 0.22);
-  --shadow-glow: 0 2px 12px -2px oklch(0.545 0.225 273 / 0.5);
+    0 1px 2px oklch(0.19 0.02 280 / 0.05), 0 16px 36px -14px oklch(0.19 0.02 280 / 0.2);
+  --shadow-glow: 0 8px 24px -8px oklch(0.55 0.235 283 / 0.6);
 
-  --radius-panel: 0.75rem;
+  --radius-panel: 1rem;
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* ── M13's evidence marks ───────────────────────────────────────────────
@@ -143,29 +160,30 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --color-canvas: oklch(0.168 0.017 266);
-    --color-surface: oklch(0.212 0.019 266);
-    --color-surface-sunken: oklch(0.188 0.018 266);
-    --color-line: oklch(0.298 0.019 266);
-    --color-line-strong: oklch(0.402 0.022 266);
+    --color-canvas: oklch(0.145 0.012 280);
+    --color-surface: oklch(0.187 0.014 280);
+    --color-surface-sunken: oklch(0.165 0.013 280);
+    --color-line: oklch(0.275 0.016 280);
+    --color-line-strong: oklch(0.37 0.02 280);
 
     /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
        the brightest thing on a dark screen. */
-    --color-rail: oklch(0.138 0.019 269);
-    --color-rail-line: oklch(0.252 0.021 269);
+    --color-rail: oklch(0.122 0.01 280);
+    --color-rail-line: oklch(0.225 0.014 280);
 
-    --color-ink: oklch(0.945 0.006 266);
-    --color-ink-soft: oklch(0.742 0.014 266);
-    --color-ink-faint: oklch(0.6 0.016 266);
+    --color-ink: oklch(0.958 0.005 280);
+    --color-ink-soft: oklch(0.745 0.012 280);
+    --color-ink-faint: oklch(0.615 0.014 280);
 
-    --color-brand: oklch(0.7 0.175 275);
-    --color-brand-hover: oklch(0.775 0.16 275);
-    --color-brand-soft: oklch(0.268 0.072 275);
-    --color-brand-line: oklch(0.392 0.1 275);
+    --color-brand: oklch(0.71 0.17 283);
+    --color-brand-hover: oklch(0.78 0.15 283);
+    --color-brand-soft: oklch(0.262 0.07 283);
+    --color-brand-line: oklch(0.4 0.11 283);
+    --color-accent: oklch(0.75 0.13 225);
 
     --shadow-card: 0 1px 2px oklch(0 0 0 / 0.34);
     --shadow-raised: 0 2px 6px oklch(0 0 0 / 0.4), 0 18px 44px -14px oklch(0 0 0 / 0.6);
-    --shadow-glow: 0 2px 14px -2px oklch(0.7 0.175 275 / 0.45);
+    --shadow-glow: 0 8px 26px -8px oklch(0.71 0.17 283 / 0.55);
 
     --color-quote: oklch(0.272 0.055 156);
     --color-quote-line: oklch(0.66 0.14 156);
@@ -199,11 +217,91 @@
     --color-mastery-strong: oklch(0.79 0.15 156);
   }
 
+  /* Two faint washes of the brand at the top of the page: enough that the
+     canvas reads as a lit surface rather than a grey sheet, never enough to
+     tint a panel. Fixed, so it does not scroll away as a stripe. */
   body {
-    background: var(--color-canvas);
+    background:
+      radial-gradient(1100px 520px at 12% -10%, oklch(0.55 0.235 283 / 0.075), transparent 62%),
+      radial-gradient(900px 460px at 95% -14%, oklch(0.68 0.16 225 / 0.065), transparent 60%),
+      var(--color-canvas);
+    background-attachment: fixed;
     color: var(--color-ink);
+    font-family: var(--font-sans);
     font-size: 0.9375rem;
+    letter-spacing: -0.006em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  :root[data-theme="dark"] body {
+    background:
+      radial-gradient(1100px 520px at 12% -10%, oklch(0.6 0.2 283 / 0.16), transparent 62%),
+      radial-gradient(900px 460px at 95% -14%, oklch(0.62 0.14 225 / 0.1), transparent 60%),
+      var(--color-canvas);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: var(--color-brand-soft);
+    color: var(--color-ink);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  /* Every control animates its colour, never its size (layout never moves). */
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    transition-property: color, background-color, border-color, box-shadow, opacity;
+    transition-duration: 150ms;
+    transition-timing-function: var(--ease-out-soft);
+  }
+
+  /* A button keeps its label. Five modules' Btn primitives were flex items
+     with no shrink rule, and beside a `flex-1` paragraph M13's "Score it"
+     collapsed to an empty pill. A button that should flex says so with a
+     utility (`flex-1`), which wins over this. */
+  button {
+    flex-shrink: 0;
+  }
+
+  /* Native selects drew the OS's 1990s arrow in every module. One chevron,
+     the same everywhere; the padding wins over a module's `px-*` so the
+     label never runs under it. */
+  select:not([multiple]) {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8fa3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.65rem center;
+    background-size: 1rem;
+    padding-inline-end: 2.1rem !important;
+  }
+
+  /* Fields focus with a soft brand ring rather than the browser's outline. */
+  input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-brand) 20%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+    }
   }
 
   /* Every figure in this product is compared against another figure: report
@@ -252,6 +350,25 @@
     border: 1px solid var(--color-line);
     border-radius: var(--radius-panel);
     box-shadow: var(--shadow-card);
+    transition:
+      border-color 150ms var(--ease-out-soft),
+      box-shadow 150ms var(--ease-out-soft);
+  }
+
+  /* The page arrives rather than appears: one short rise, once per route. */
+  .page-in {
+    animation: page-in 280ms var(--ease-out-soft) both;
+  }
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .skeleton {
@@ -305,4 +422,33 @@
     text-decoration-color: var(--color-blocked-line);
     border-radius: 3px;
   }
+}
+
+/*
+  The brand gradient, as utilities so variants work (`hover:`, `dark:`).
+  Decoration for the logo, the primary action and a hero's key words - the
+  verification palette and the mastery ramp never use it.
+*/
+@utility bg-brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-brand) 0%,
+    color-mix(in oklch, var(--color-brand) 60%, var(--color-accent)) 100%
+  );
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(100deg, var(--color-brand) 10%, var(--color-accent) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* A hairline grid that fades out: the hero's texture, nothing more. */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklch, var(--color-line) 70%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklch, var(--color-line) 70%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 75%);
 }
