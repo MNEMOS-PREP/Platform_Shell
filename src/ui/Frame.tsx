@@ -357,6 +357,14 @@ export function Frame({
       run: () => navigate("/resume"),
     },
     {
+      id: "do:library",
+      group: "Actions",
+      label: "Open your resume library",
+      icon: "layers",
+      keywords: "achievements certifications projects skills saved build new resume",
+      run: () => navigate("/resume/library"),
+    },
+    {
       id: "do:jd",
       group: "Actions",
       label: "Paste a job description",
