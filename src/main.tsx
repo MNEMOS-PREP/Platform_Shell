@@ -63,25 +63,25 @@ import "@fontsource-variable/geist-mono";
 import "./theme.css";
 
 /*
-  Grouped by what the student is doing, in journey order within each group: a
-  student reads the rail top to bottom the first time and that order is the
-  product's argument. `match` keeps the parent lit on child routes -
-  /resumes/:id belongs to Resume.
+  Ordered by how often a student goes there, not by the journey (2026-10-04).
+  It used to read Prepare: Today, Resume, Job description, Companies, then
+  Practise: Mock interview… — Today filed under "Prepare", and the thing a
+  student does every day fifth. Setup is done once; it goes last. The first
+  group has no label: Today and the interview are the product.
+  `match` keeps the parent lit on child routes - /resumes/:id belongs to Resume.
 */
-const NAV: FrameNavGroup[] = [
+const TODAY: FrameNavItem = { to: "/", label: "Today", icon: "compass" };
+const COMPANIES: FrameNavItem = { to: "/companies", label: "Companies", icon: "building" };
+const JD: FrameNavItem = { to: "/jd", label: "Job description", icon: "listChecks", match: "/jds" };
+
+const STUDENT_NAV: FrameNavGroup[] = [
   {
-    label: "Prepare",
-    items: [
-      { to: "/", label: "Today", icon: "compass" },
-      { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
-      { to: "/jd", label: "Job description", icon: "listChecks", match: "/jds" },
-      { to: "/companies", label: "Companies", icon: "building" },
-    ],
+    label: "",
+    items: [TODAY, { to: "/mock", label: "Mock interview", icon: "mic" }],
   },
   {
-    label: "Practise",
+    label: "Progress",
     items: [
-      { to: "/mock", label: "Mock interview", icon: "mic" },
       // A student's "evaluation" is their own marked answers (2026-10-04).
       // M13's bench, which this used to open, is a staff tool now.
       { to: "/answers", label: "My answers", icon: "target", match: "/turns" },
@@ -89,6 +89,28 @@ const NAV: FrameNavGroup[] = [
       { to: "/history", label: "History", icon: "clock" },
     ],
   },
+  {
+    label: "Prepare",
+    items: [
+      COMPANIES,
+      JD,
+      { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
+    ],
+  },
+];
+
+/** The phone's tab bar, per role: the four places each goes most. */
+const STUDENT_TABS: FrameNavItem[] = [
+  TODAY,
+  { to: "/mock", label: "Interview", icon: "mic" },
+  { to: "/skills", label: "Skills", icon: "graph" },
+  COMPANIES,
+];
+const STAFF_TABS: FrameNavItem[] = [
+  TODAY,
+  { to: "/review", label: "Review", icon: "shield" },
+  COMPANIES,
+  { to: "/system", label: "System", icon: "monitor" },
 ];
 
 /*
@@ -263,14 +285,22 @@ function App() {
     ...(isStaff(session) ? PLACEMENT_NAV : []),
     ...(session.role === "admin" ? ADMIN_NAV : []),
   ];
-  const nav: FrameNavGroup[] = [
-    ...NAV,
-    ...(staff.length ? [{ label: "Staff", items: staff }] : []),
-    ...(staffRole ? [{ label: "Platform", items: PLATFORM_NAV }] : []),
-  ];
+  /*
+    Staff lead with their own work. Resume, My answers, the skill graph and
+    history are a student's own — staff are nobody's candidate, so those pages
+    had nothing for them and pushed their queues below the fold.
+  */
+  const nav: FrameNavGroup[] = staffRole
+    ? [
+        { label: "", items: [TODAY] },
+        { label: "Staff", items: staff },
+        { label: "Browse", items: [COMPANIES, JD] },
+        { label: "Platform", items: PLATFORM_NAV },
+      ]
+    : STUDENT_NAV;
 
   return (
-    <Frame groups={nav}>
+    <Frame groups={nav} tabs={staffRole ? STAFF_TABS : STUDENT_TABS}>
       <MockTargetsContext.Provider value={targets}>
       <ScreenBoundary key={`${who}${location.pathname}`}>
       <Routes key={who}>

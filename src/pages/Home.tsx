@@ -6,37 +6,49 @@
  *
  *   · ONE next thing to do, top-left, chosen from the student's own data (the
  *     2026 "AI-native dashboard" pattern: summarise and prioritise, don't make
- *     people read a grid). No resume → add one. Never practised → first
- *     interview. Otherwise → the weak concept underneath the most others.
+ *     people read a grid).
  *   · The habit loop, counted honestly (lib/practice.ts): a streak of days the
  *     student actually practised, the last two weeks as a strip, and a weekly
  *     goal THEY set. Duolingo's lesson, without Duolingo's guilt: the copy says
  *     a missed day resets the streak, never the progress.
  *   · Growth you can see: how much of the skill graph you have shown, over
  *     time, from M04's trajectory — a count, not an invented readiness score.
- *   · What you did last, one click from its notes.
  *
- * Every figure is a count of something that happened. Staff, who are nobody's
- * candidate, get the platform overview instead.
+ * Every figure is a count of something that happened.
  *
- * 2026-10-04: the focus does what it says — "Practise Recursion" starts an
- * interview planned on recursion (M06 `focus_concepts`) — and when a drive the
- * student told us about is two weeks out or less, the drive comes first,
- * because that is the deadline that matters. Today now knows the student's
- * name and drives (M04's profile), counts down to the next drive, shows
- * milestones earned from what happened, and how many others practised this
- * week (counts only). The platform overview is for staff; students got the
- * engine room in its place.
+ * ── The order of things (2026-10-04, round 2) ──────────────────────────────
+ * The first page decides whether a student stays, so what comes first is the
+ * one thing that matters most to THIS student now, and the rest follows in
+ * one order: urgency, habit, feedback, progress, social.
+ *
+ *   · The focus card's priority: an interview left half-done, then a drive
+ *     two weeks out or closer, then the first interview, then the resume,
+ *     then the weak topic, then momentum. Until now "add your resume" came
+ *     first, so a student eight days from TCS NQT was told to upload a file.
+ *   · A student who has never practised does not get five empty cards. They
+ *     get the next step, the setup steps, what the first interview unlocks,
+ *     and how many others practised this week. The other cards appear once
+ *     they have something to say (progressive disclosure).
+ *   · A returning student reads: Focus · Streak, then Last interview (with its
+ *     bands — the result is what brings people back) · Next drive, then Skill
+ *     graph · Milestones, then the week's cohort as a footer. On a phone that
+ *     is the same order, top to bottom.
+ *   · Staff land on their own queues with counts, not on a tour of student
+ *     modules.
  */
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
+  ANSWER_BAND_LABEL,
   Icon,
   STATE_LABEL,
+  SkeletonCards,
   candidateIdOf,
+  isStaff,
   relativeDays,
   useSession,
+  type AnswerBand,
   type IconName,
   type MasteryState,
 } from "@ai/core";
@@ -50,11 +62,19 @@ import {
   useTrajectory,
   type StudentProfile,
 } from "@ai/m04";
-import { useCohortStats, useHistory } from "@ai/m06";
+import {
+  bandOf,
+  topicName,
+  useCohortStats,
+  useHistory,
+  useReport,
+  type SessionSummary,
+} from "@ai/m06";
+import { useDisputeQueue, useOutbox } from "@ai/m13";
+import { useClaimReports, useReviewQueue } from "@ai/m15";
 
 import { firstName } from "../lib/account";
 import { countdownLabel, daysUntil, downloadIcs, driveIcs, milestones, nextDrive } from "../lib/goals";
-
 import { JOURNEY, type Stage } from "../lib/journey";
 import {
   GOAL_OPTIONS,
@@ -121,14 +141,13 @@ function Ring({ value, of, size = 88 }: { value: number; of: number; size?: numb
 function Growth({ points }: { points: { date: string; count: number }[] }) {
   const w = 560;
   const h = 120;
-  if (points.length === 0) return null;
-  const series = points.length === 1 ? [{ ...points[0]!, count: 0 }, points[0]!] : points;
-  const max = Math.max(...series.map((p) => p.count), 1);
-  const xs = series.map((_, i) => (i / (series.length - 1)) * w);
-  const ys = series.map((p) => h - 8 - (p.count / max) * (h - 24));
+  if (points.length < 2) return null;
+  const max = Math.max(...points.map((p) => p.count), 1);
+  const xs = points.map((_, i) => (i / (points.length - 1)) * w);
+  const ys = points.map((p) => h - 8 - (p.count / max) * (h - 24));
   // A step line: a concept is measured from the day it first was, not gradually.
   let line = `M ${xs[0]} ${ys[0]}`;
-  for (let i = 1; i < series.length; i++) line += ` H ${xs[i]} V ${ys[i]}`;
+  for (let i = 1; i < points.length; i++) line += ` H ${xs[i]} V ${ys[i]}`;
   const area = `${line} V ${h} H 0 Z`;
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-28 w-full" aria-hidden>
@@ -152,22 +171,64 @@ const STATE_FILL: Record<string, string> = {
   emerging: "bg-line-strong",
 };
 
+const BAND_DOT: Record<AnswerBand, string> = {
+  strong: "bg-mastery-strong",
+  partly: "bg-mastery-ok",
+  not_yet: "bg-mastery-weak",
+};
+
+/** A band word with its colour as a dot — ink text passes contrast in both themes. */
+function BandChip({ band, n }: { band: AnswerBand; n?: number }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-xs font-medium text-ink">
+      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${BAND_DOT[band]}`} />
+      {n !== undefined && <span data-numeric>{n}</span>}
+      {ANSWER_BAND_LABEL[band]}
+    </span>
+  );
+}
+
+const LIVE_STATUSES = new Set(["live", "paused"]);
+
+/** The gentlest real start: 15 minutes of Practice — hints on, a retry allowed. */
+const FIRST_INTERVIEW = "/mock?minutes=15&mode=practice";
+
 /* ────────────────────────────── the cards ─────────────────────────────── */
 
 /** A drive two weeks out or closer outranks the skill graph's suggestion. */
 const DRIVE_FIRST_WITHIN_DAYS = 14;
 
-function FocusCard({ candidate, profile }: { candidate: string; profile?: StudentProfile }) {
+interface Focus {
+  eyebrow: string;
+  title: ReactNode;
+  body: string;
+  cta: string;
+  to: string;
+  icon: IconName;
+  why: string;
+}
+
+function FocusCard({
+  candidate,
+  profile,
+  sessions,
+  className = "",
+}: {
+  candidate: string;
+  profile?: StudentProfile;
+  sessions: SessionSummary[];
+  className?: string;
+}) {
   const resumes = useCandidateResumes(candidate);
-  const history = useHistory(120);
   const bottlenecks = useBottlenecks(candidate, false);
   const mastery = useMastery(candidate, false);
 
   const hasResume = (resumes.data?.length ?? 0) > 0;
-  const practised = (history.data ?? []).some((s) => s.started_at);
+  const practised = sessions.some((s) => s.started_at);
   const measured = (mastery.data?.totals.measured ?? 0) > 0;
   const blocker = bottlenecks.data?.bottlenecks[0];
-  const loading = resumes.isLoading || history.isLoading;
+  const open = sessions.find((s) => LIVE_STATUSES.has(s.status));
+  const planned = sessions.find((s) => s.status === "planned");
   const drive = nextDrive(profile?.drives ?? []);
   const driveDays = drive ? daysUntil(drive.date) : null;
   const driveSoon = drive !== null && driveDays !== null && driveDays <= DRIVE_FIRST_WITHIN_DAYS;
@@ -176,26 +237,28 @@ function FocusCard({ candidate, profile }: { candidate: string; profile?: Studen
       ? `/mock?${new URLSearchParams({ company: drive.company_id, drive: drive.drive_id, label: drive.label })}`
       : "/mock";
 
-  let focus: { eyebrow: string; title: ReactNode; body: string; cta: string; to: string; icon: IconName; why: string };
-  if (!hasResume) {
+  // The order is the argument: what is already started, then the deadline,
+  // then the first step, then setup, then the skill graph's suggestion.
+  let focus: Focus;
+  if (open) {
     focus = {
-      eyebrow: "Start here",
-      title: "Add your resume",
-      body: "The interviewer asks about your own projects. Give it something to ask about — and see which lines you can't yet defend, before a panel finds them.",
-      cta: "Upload your resume",
-      to: "/resume",
-      icon: "document",
-      why: "You haven't added a resume yet.",
-    };
-  } else if (!practised) {
-    focus = {
-      eyebrow: "Your first interview",
-      title: "Take a 15-minute mock interview",
-      body: "A real interviewer probes until it finds the edge of what you know. You leave with notes on where your understanding held — and where it broke.",
-      cta: "Start the interview",
-      to: "/mock",
+      eyebrow: "In progress",
+      title: "Pick up where you left off",
+      body: "Your interview is still open. Your answers so far are kept, and the notes come when you finish — or end it early, and you still get them.",
+      cta: "Continue the interview",
+      to: `/mock/${open.id}`,
       icon: "mic",
-      why: "Your resume is in. Nothing has been asked yet.",
+      why: `Started ${relativeDays(open.started_at ?? open.created_at)}.`,
+    };
+  } else if (planned) {
+    focus = {
+      eyebrow: "Ready when you are",
+      title: "Your interview is planned",
+      body: "The plan is built — see what you'll be asked, then start. You can remove a part you don't want.",
+      cta: "See the plan",
+      to: `/mock/${planned.id}/plan`,
+      icon: "listChecks",
+      why: `Planned ${relativeDays(planned.created_at)}.`,
     };
   } else if (driveSoon && drive) {
     focus = {
@@ -207,11 +270,31 @@ function FocusCard({ candidate, profile }: { candidate: string; profile?: Studen
       ),
       body: drive.drive_id
         ? "An interview planned from what this drive asks for — the closest thing to the real one you can sit today."
-        : "Your drive is close. A full interview today, and add the drive's details in Settings to plan from what it asks for.",
+        : "Your drive is close. A full interview today — and pick the drive in Settings to plan from what it asks for.",
       cta: "Practise for this drive",
       to: driveLink,
       icon: "building",
       why: "Your nearest drive comes first while it's two weeks away or closer.",
+    };
+  } else if (!practised) {
+    focus = {
+      eyebrow: "Start here",
+      title: "Take your first interview",
+      body: "15 minutes of practice: hints on, and you can try a question again. You leave with notes on every answer — where your reasoning held, and where it stopped.",
+      cta: "Start my first interview",
+      to: FIRST_INTERVIEW,
+      icon: "mic",
+      why: "Nothing has been asked yet — this is the quickest way to see what the platform does.",
+    };
+  } else if (!hasResume) {
+    focus = {
+      eyebrow: "Next step",
+      title: "Add your resume",
+      body: "So the next interview asks about your own projects — and you can see which lines on it you can't defend yet, before a panel finds them.",
+      cta: "Upload your resume",
+      to: "/resume",
+      icon: "document",
+      why: "Interviews so far were general. A resume makes them yours.",
     };
   } else if (blocker) {
     focus = {
@@ -239,15 +322,19 @@ function FocusCard({ candidate, profile }: { candidate: string; profile?: Studen
     };
   }
 
+  // Setup, as actions — each one a link while it is not done. The drive is
+  // optional, so it never keeps the checklist open on its own.
   const steps = [
-    { done: hasResume, label: "Add your resume" },
-    { done: practised, label: "Take a first interview" },
-    { done: measured, label: "Get your skill graph moving" },
+    { done: practised, label: "Take your first interview", to: FIRST_INTERVIEW },
+    { done: hasResume, label: "Add your resume", to: "/resume" },
+    { done: (profile?.drives.length ?? 0) > 0, label: "Add a drive date", to: "/settings#drives", optional: true },
   ];
+  const required = steps.filter((s) => !s.optional);
   const doneCount = steps.filter((s) => s.done).length;
+  const loading = resumes.isLoading;
 
   return (
-    <section className="panel relative overflow-hidden p-7 lg:col-span-2">
+    <section className={`panel relative overflow-hidden p-7 ${className}`}>
       <div aria-hidden className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-brand opacity-[0.16] blur-3xl" />
       <div className={`relative ${loading ? "opacity-0" : "page-in"}`}>
         <p className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand">
@@ -264,7 +351,7 @@ function FocusCard({ candidate, profile }: { candidate: string; profile?: Studen
             <Icon name={focus.icon} size={16} />
             {focus.cta}
           </Link>
-          {blocker && practised && hasResume && (
+          {blocker && focus.to.includes("focus=") && (
             <Link
               to={`/skills?concept=${encodeURIComponent(blocker.concept_id)}`}
               className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-ink-soft hover:bg-surface-sunken hover:text-ink"
@@ -277,22 +364,29 @@ function FocusCard({ candidate, profile }: { candidate: string; profile?: Studen
           <Icon name="info" size={13} /> {focus.why}
         </p>
 
-        {doneCount < steps.length && (
+        {required.some((s) => !s.done) && (
           <div className="mt-6 border-t border-line pt-5">
             <p className="text-xs font-medium text-ink-faint">
               Getting set up · {doneCount} of {steps.length} done
             </p>
             <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
               {steps.map((step) => (
-                <li key={step.label} className="flex items-center gap-2 text-sm">
-                  <span
-                    className={`grid h-5 w-5 place-items-center rounded-full ${
-                      step.done ? "bg-confirmed text-white" : "border border-line-strong text-transparent"
-                    }`}
+                <li key={step.label}>
+                  <Link
+                    to={step.to}
+                    aria-disabled={step.done || undefined}
+                    className={`flex items-center gap-2 text-sm ${step.done ? "pointer-events-none" : "hover:text-brand"}`}
                   >
-                    <Icon name="check" size={12} />
-                  </span>
-                  <span className={step.done ? "text-ink-faint line-through" : "text-ink"}>{step.label}</span>
+                    <span
+                      className={`grid h-5 w-5 place-items-center rounded-full ${
+                        step.done ? "bg-confirmed text-white" : "border border-line-strong text-transparent"
+                      }`}
+                    >
+                      <Icon name="check" size={12} />
+                    </span>
+                    <span className={step.done ? "text-ink-faint line-through" : "text-ink"}>{step.label}</span>
+                    {step.optional && !step.done && <span className="text-xs text-ink-faint">optional</span>}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -303,12 +397,72 @@ function FocusCard({ candidate, profile }: { candidate: string; profile?: Studen
   );
 }
 
-function HabitCard({ candidate, profile }: { candidate: string; profile?: StudentProfile }) {
-  const history = useHistory(120);
+/**
+ * Before the first interview: what it unlocks, shown rather than five empty
+ * cards. Illustrations, labelled as examples, of the three things a student
+ * gets back — notes with bands, a skill graph that fills in, a streak.
+ */
+function WhatYouGetCard() {
+  return (
+    <Card>
+      <CardLabel icon="sparkles">What your first interview unlocks</CardLabel>
+      <ul className="mt-5 space-y-5">
+        <li>
+          <p className="text-sm font-medium text-ink">Notes on every answer</p>
+          <p className="mt-0.5 text-xs text-ink-faint">Where your reasoning held, and a word for each answer.</p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5" aria-hidden>
+            <BandChip band="strong" />
+            <BandChip band="partly" />
+            <BandChip band="not_yet" />
+          </div>
+        </li>
+        <li>
+          <p className="text-sm font-medium text-ink">A skill graph that fills in</p>
+          <p className="mt-0.5 text-xs text-ink-faint">Topic by topic, each with your own answer behind it.</p>
+          <div className="mt-2.5 space-y-1.5" aria-hidden>
+            {[
+              ["Hashing", 78, "bg-mastery-strong"],
+              ["Recursion", 46, "bg-mastery-ok"],
+              ["Dynamic programming", 22, "bg-mastery-weak"],
+            ].map(([label, width, fill]) => (
+              <div key={label as string} className="flex items-center gap-2 text-xs text-ink-soft">
+                <span className="w-32 truncate">{label}</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken">
+                  <span className={`block h-full rounded-full ${fill}`} style={{ width: `${width}%` }} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </li>
+        <li>
+          <p className="text-sm font-medium text-ink">A streak that counts real days</p>
+          <div className="mt-2.5 flex gap-1" aria-hidden>
+            {Array.from({ length: 7 }, (_, i) => (
+              <span
+                key={i}
+                className={`h-4 flex-1 rounded-[4px] ${i === 6 ? "bg-brand" : "border border-line bg-surface-sunken"}`}
+              />
+            ))}
+          </div>
+        </li>
+      </ul>
+      <p className="mt-5 text-[0.6875rem] text-ink-faint">Examples — yours start with your first interview.</p>
+    </Card>
+  );
+}
+
+function HabitCard({
+  candidate,
+  profile,
+  sessions,
+}: {
+  candidate: string;
+  profile?: StudentProfile;
+  sessions: SessionSummary[];
+}) {
   const saveProfile = useSaveProfile(candidate);
   const [picked, setGoal] = useState<number | null>(null);
   const goal = picked ?? profile?.weekly_goal ?? readGoal();
-  const sessions = history.data ?? [];
   const days = useMemo(() => practiceDays(sessions), [sessions]);
   const streak = currentStreak(days);
   const best = bestStreak(days);
@@ -403,7 +557,114 @@ function HabitCard({ candidate, profile }: { candidate: string; profile?: Studen
   );
 }
 
-function GrowthCard({ candidate }: { candidate: string }) {
+const MODE_LABEL: Record<string, string> = {
+  practice: "Practice",
+  mock: "Mock",
+  real_drive: "Real drive",
+  final_boss: "Final boss",
+};
+
+/**
+ * How the last interview went — the reason to come back, so it sits second
+ * only to the next action. Its bands (from M06's notes, the same reading the
+ * notes and My answers use), the weakest topic as a one-click focused
+ * interview, and the two before it.
+ */
+function LastInterviewCard({ sessions, className = "" }: { sessions: SessionSummary[]; className?: string }) {
+  const finished = sessions.filter((s) => s.status === "ended" && s.kind !== "drill");
+  const last = finished[0];
+  const report = useReport(last?.id);
+  const earlier = sessions.filter((s) => s.id !== last?.id).slice(0, 2);
+
+  const questions = report.data?.questions ?? [];
+  const bands = questions.map(bandOf);
+  const counts = (["strong", "partly", "not_yet"] as AnswerBand[])
+    .map((band) => ({ band, n: bands.filter((b) => b === band).length }))
+    .filter((c) => c.n > 0);
+  const marking = questions.some((q) => q.scoring_status === "queued");
+  const weakest = questions.find((q) => bandOf(q) === "not_yet" && q.concept_id) ??
+    questions.find((q) => bandOf(q) === "partly" && q.concept_id);
+  const weakName = weakest ? topicName(weakest) : null;
+
+  return (
+    <Card className={className}>
+      <div className="flex items-center justify-between">
+        <CardLabel icon="clock">Your last interview</CardLabel>
+        <Link to="/history" className="text-xs font-medium text-brand">
+          All interviews
+        </Link>
+      </div>
+
+      {!last ? (
+        <p className="mt-5 text-sm text-ink-soft">Your notes appear here when you finish an interview.</p>
+      ) : (
+        <>
+          <p className="mt-3 text-lg font-semibold text-ink">
+            {MODE_LABEL[last.mode] ?? last.mode} · {relativeDays(last.ended_at ?? last.created_at)}
+          </p>
+          <p className="mt-0.5 text-xs text-ink-faint">
+            {report.data
+              ? `${questions.length} question${questions.length === 1 ? "" : "s"} · ${Math.max(1, Math.round(report.data.minutes_used))} of ${report.data.minutes_planned} min`
+              : "Reading the notes…"}
+          </p>
+          {counts.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {counts.map((c) => (
+                <BandChip key={c.band} band={c.band} n={c.n} />
+              ))}
+            </div>
+          )}
+          {marking && (
+            <p className="mt-3 text-xs text-ink-soft">Some answers are still being marked — usually a minute.</p>
+          )}
+          {report.data && counts.length === 0 && !marking && (
+            <p className="mt-3 text-xs text-ink-soft">No answers to mark in this one.</p>
+          )}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <Link
+              to={`/mock/${last.id}/report`}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-sm font-medium text-ink hover:border-brand-line"
+            >
+              Read the notes <Icon name="arrowRight" size={14} />
+            </Link>
+            {weakest && weakName && (
+              <Link
+                to={`/mock?${new URLSearchParams({ focus: weakest.concept_id!, label: weakName })}`}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-medium text-brand hover:bg-brand-soft"
+              >
+                <Icon name="refresh" size={14} /> Practise {weakName} again
+              </Link>
+            )}
+          </div>
+        </>
+      )}
+
+      {earlier.length > 0 && (
+        <ul className="mt-5 space-y-0.5 border-t border-line pt-3">
+          {earlier.map((s) => {
+            const done = s.status === "ended" || s.status === "aborted";
+            return (
+              <li key={s.id}>
+                <Link
+                  to={done ? `/mock/${s.id}/report` : `/mock/${s.id}`}
+                  className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm hover:bg-surface-sunken"
+                >
+                  <Icon name={s.kind === "drill" ? "zap" : "mic"} size={14} className="shrink-0 text-ink-faint" />
+                  <span className="min-w-0 flex-1 truncate text-ink-soft">
+                    {s.kind === "drill" ? "Defend drill" : `${MODE_LABEL[s.mode] ?? s.mode} · ${s.requested_minutes} min`}
+                  </span>
+                  <span className="shrink-0 text-xs text-ink-faint">{relativeDays(s.created_at)}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function GrowthCard({ candidate, className = "" }: { candidate: string; className?: string }) {
   const mastery = useMastery(candidate, false);
   const trajectory = useTrajectory(candidate);
   const points = useMemo(() => measuredOverTime(trajectory.data?.series ?? []), [trajectory.data]);
@@ -412,7 +673,7 @@ function GrowthCard({ candidate }: { candidate: string }) {
   const total = counts.reduce((a, b) => a + b.n, 0);
 
   return (
-    <Card className="lg:col-span-2">
+    <Card className={className}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <CardLabel icon="graph">Your skill graph</CardLabel>
@@ -430,7 +691,9 @@ function GrowthCard({ candidate }: { candidate: string }) {
         </Link>
       </div>
 
-      {points.length > 0 ? (
+      {/* The line needs two days to compare; with one it drew a flat line and
+          a spike at the edge, which read as a broken chart. */}
+      {points.length >= 2 && (
         <div className="mt-4">
           <Growth points={points} />
           <p className="mt-1 flex justify-between text-[0.6875rem] text-ink-faint">
@@ -438,9 +701,10 @@ function GrowthCard({ candidate }: { candidate: string }) {
             <span>topics with your answers behind them, over time</span>
           </p>
         </div>
-      ) : (
+      )}
+      {total === 0 && (
         <p className="mt-6 rounded-lg border border-dashed border-line p-6 text-center text-sm text-ink-faint">
-          Your first interview starts it — every topic here has one of your answers behind it.
+          It fills in as your answers are marked — every topic here has one of your answers behind it.
         </p>
       )}
 
@@ -524,11 +788,10 @@ function CountdownCard({ profile }: { profile?: StudentProfile }) {
   );
 }
 
-function MilestonesCard({ candidate }: { candidate: string }) {
-  const history = useHistory(120);
+function MilestonesCard({ candidate, sessions }: { candidate: string; sessions: SessionSummary[] }) {
   const mastery = useMastery(candidate, false);
   const solid = (mastery.data?.measured ?? []).filter((r) => r.state === "adequate" || r.state === "strong").length;
-  const all = milestones(history.data ?? [], solid);
+  const all = milestones(sessions, solid);
   const earned = all.filter((m) => m.earned);
   const next = all.find((m) => !m.earned);
   return (
@@ -569,7 +832,8 @@ function MilestonesCard({ candidate }: { candidate: string }) {
   );
 }
 
-function TogetherCard() {
+/** The week's cohort, last and slim: social proof supports; it never leads. */
+function TogetherStrip() {
   const cohort = useCohortStats();
   const [shared, setShared] = useState<string | null>(null);
   const invite = async () => {
@@ -589,31 +853,35 @@ function TogetherCard() {
   };
   const n = cohort.data?.students_this_week ?? 0;
   return (
-    <Card>
-      <CardLabel icon="users">Practising this week</CardLabel>
-      {cohort.data && n > 0 ? (
-        <p className="mt-3 flex items-baseline gap-2">
-          <span className="text-4xl font-semibold tracking-tight text-ink" data-numeric>
-            {n}
-          </span>
-          <span className="text-sm text-ink-faint">
-            student{n === 1 ? "" : "s"} · {cohort.data.interviews_this_week} interview
+    <section className="panel flex flex-wrap items-center gap-x-5 gap-y-3 px-6 py-4 lg:col-span-3">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-surface-sunken text-ink-soft">
+        <Icon name="users" size={16} />
+      </span>
+      {/* basis-64: on a phone the button wraps under the sentence rather than
+          squeezing it into a one-word column. */}
+      <p className="min-w-0 flex-1 basis-64 text-sm text-ink">
+        {cohort.data && n > 0 ? (
+          <>
+            <span className="font-semibold" data-numeric>
+              {n} student{n === 1 ? "" : "s"}
+            </span>{" "}
+            practised this week · {cohort.data.interviews_this_week} interview
             {cohort.data.interviews_this_week === 1 ? "" : "s"}
-          </span>
-        </p>
-      ) : (
-        <p className="mt-3 text-sm text-ink-soft">Be the first to practise this week.</p>
-      )}
-      <p className="mt-2 text-xs text-ink-faint">Counts only — never names.</p>
+            <span className="text-ink-faint"> · counts only, never names</span>
+          </>
+        ) : (
+          "Be the first to practise this week."
+        )}
+      </p>
       <button
         type="button"
         onClick={invite}
-        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:border-brand-line"
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:border-brand-line"
       >
         <Icon name="send" size={14} />
         {shared ?? "Invite a friend to practise"}
       </button>
-    </Card>
+    </section>
   );
 }
 
@@ -654,63 +922,124 @@ function Nudges({ candidate, profile }: { candidate: string; profile?: StudentPr
   return null;
 }
 
-const MODE_LABEL: Record<string, string> = {
-  practice: "Practice",
-  mock: "Mock",
-  real_drive: "Real drive",
-  final_boss: "Final boss",
-};
+/* ───────────────────────── staff: their own work first ──────────────────── */
 
-function RecentCard() {
-  const history = useHistory(120);
-  const recent = (history.data ?? []).slice(0, 4);
+function QueueCard({
+  icon,
+  count,
+  label,
+  sub,
+  to,
+  loading,
+}: {
+  icon: IconName;
+  count: number | null;
+  label: string;
+  sub: string;
+  to: string;
+  loading: boolean;
+}) {
+  const waiting = (count ?? 0) > 0;
   return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <CardLabel icon="clock">Recent interviews</CardLabel>
-        <Link to="/history" className="text-xs font-medium text-brand">
-          All
-        </Link>
+    <Link to={to} className="panel group flex items-start gap-4 p-5 hover:border-brand-line">
+      <span
+        className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+          waiting ? "bg-reported-soft text-reported" : "bg-surface-sunken text-ink-faint"
+        }`}
+      >
+        <Icon name={icon} size={18} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-baseline gap-2">
+          <span className="text-3xl font-semibold tracking-tight text-ink" data-numeric>
+            {loading ? "—" : count ?? "—"}
+          </span>
+          <span className="text-sm font-medium text-ink">{label}</span>
+        </span>
+        <span className="mt-0.5 block text-xs text-ink-faint">{waiting ? sub : "Nothing waiting."}</span>
+      </span>
+      <Icon name="arrowRight" size={16} className="mt-1 text-ink-faint group-hover:text-brand" />
+    </Link>
+  );
+}
+
+/** Admin-only queues, in their own component so nobody else sends the requests. */
+function AdminQueues() {
+  const disputes = useDisputeQueue();
+  const outbox = useOutbox();
+  const stuck = Object.values(outbox.data?.channels ?? {}).reduce((sum, c) => sum + c.stuck, 0);
+  return (
+    <>
+      <QueueCard
+        icon="scales"
+        count={disputes.data?.open ?? null}
+        label="disputed marks"
+        sub="Students asked for a mark to be looked at again."
+        to="/disputes"
+        loading={disputes.isLoading}
+      />
+      <QueueCard
+        icon="send"
+        count={outbox.data ? stuck : null}
+        label="stuck in the outbox"
+        sub="Marks that haven't reached the skill graph yet."
+        to="/outbox"
+        loading={outbox.isLoading}
+      />
+    </>
+  );
+}
+
+function StaffHome({ admin }: { admin: boolean }) {
+  const reports = useReviewQueue();
+  const claims = useClaimReports(false);
+  const cohort = useCohortStats();
+  const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <>
+      <header>
+        <p className="text-sm text-ink-faint">{today}</p>
+        <h1 className="mt-1 text-title font-semibold text-ink">{greeting()}.</h1>
+        <p className="mt-2 max-w-2xl text-ink-soft">Here's what is waiting for you.</p>
+      </header>
+
+      <div className="stagger mt-7 grid gap-4 md:grid-cols-2">
+        <QueueCard
+          icon="document"
+          count={reports.data?.length ?? null}
+          label="experience reports to review"
+          sub="Students' post-drive reports waiting before they reach company pages."
+          to="/review"
+          loading={reports.isLoading}
+        />
+        <QueueCard
+          icon="alert"
+          count={claims.data?.length ?? null}
+          label="reported claims"
+          sub="Facts on company pages that students say are wrong."
+          to="/review"
+          loading={claims.isLoading}
+        />
+        {admin && <AdminQueues />}
       </div>
-      {recent.length === 0 ? (
-        <p className="mt-6 text-sm leading-relaxed text-ink-faint">
-          Nothing yet. Your interviews will be listed here with the notes from each.
+
+      <section className="panel mt-4 flex flex-wrap items-center gap-x-8 gap-y-3 px-6 py-4">
+        <CardLabel icon="users">This week on the platform</CardLabel>
+        <p className="text-sm text-ink">
+          <span className="font-semibold" data-numeric>
+            {cohort.data?.students_this_week ?? "—"}
+          </span>{" "}
+          students practised ·{" "}
+          <span className="font-semibold" data-numeric>
+            {cohort.data?.interviews_this_week ?? "—"}
+          </span>{" "}
+          interviews
         </p>
-      ) : (
-        <ul className="mt-4 space-y-1">
-          {recent.map((s) => {
-            const finished = s.status === "ended" || s.status === "aborted";
-            return (
-              <li key={s.id}>
-                <Link
-                  to={finished ? `/mock/${s.id}/report` : `/mock/${s.id}`}
-                  className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-surface-sunken"
-                >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-sunken text-ink-soft">
-                    <Icon name={s.kind === "drill" ? "zap" : "mic"} size={15} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink">
-                      {MODE_LABEL[s.mode] ?? s.mode} · {s.requested_minutes} min
-                    </span>
-                    <span className="block text-xs text-ink-faint">{relativeDays(s.created_at)}</span>
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[0.6875rem] font-medium ${
-                      finished
-                        ? "bg-surface-sunken text-ink-soft"
-                        : "border border-brand-line bg-brand-soft text-brand"
-                    }`}
-                  >
-                    {finished ? "Notes" : s.status === "planned" ? "Planned" : "Continue"}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Card>
+        <span className="text-xs text-ink-faint">Counts only — never one student's record.</span>
+      </section>
+
+      <Platform />
+    </>
   );
 }
 
@@ -798,27 +1127,24 @@ export function Home() {
   const session = useSession();
   const candidate = candidateIdOf(session);
   const profile = useProfile(candidate);
+  const history = useHistory(120);
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 
   if (!candidate) {
+    if (isStaff(session) || session?.role === "admin") return <StaffHome admin={session?.role === "admin"} />;
     return (
-      <>
-        <header>
-          <p className="text-sm text-ink-faint">{today}</p>
-          <h1 className="mt-1 text-title font-semibold text-ink">
-            {greeting()}.
-          </h1>
-          <p className="mt-2 max-w-2xl text-ink-soft">
-            Signed in as staff. Students' practice is theirs; what you can open is in the menu —
-            and the platform below.
-          </p>
-        </header>
+      <header>
+        <p className="text-sm text-ink-faint">{today}</p>
+        <h1 className="mt-1 text-title font-semibold text-ink">{greeting()}.</h1>
         <Platform />
-      </>
+      </header>
     );
   }
 
+  const sessions = history.data ?? [];
+  const practised = sessions.some((s) => s.started_at);
   const name = firstName(profile.data?.display_name || session?.name);
+
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -829,26 +1155,48 @@ export function Home() {
             {name && name !== "Demo" && name !== "New" ? `, ${name}` : ""}.
           </h1>
         </div>
-        <Link
-          to="/mock"
-          className="inline-flex h-10 items-center gap-2 rounded-lg border border-line bg-surface px-4 text-sm font-medium text-ink hover:border-line-strong"
-        >
-          <Icon name="plus" size={15} />
-          New interview
-        </Link>
+        {/* A quick start for people who already know the way, on a laptop
+            only: the focus card has the button a new student needs, and a
+            phone has the Interview tab in thumb reach. */}
+        {practised && (
+          <Link
+            to="/mock"
+            className="hidden h-10 items-center gap-2 rounded-lg border border-line bg-surface px-4 text-sm font-medium text-ink hover:border-line-strong lg:inline-flex"
+          >
+            <Icon name="plus" size={15} />
+            New interview
+          </Link>
+        )}
       </header>
 
       <Nudges candidate={candidate} profile={profile.data} />
 
-      <div className="stagger mt-7 grid gap-5 lg:grid-cols-3">
-        <FocusCard candidate={candidate} profile={profile.data} />
-        <HabitCard candidate={candidate} profile={profile.data} />
-        <GrowthCard candidate={candidate} />
-        <CountdownCard profile={profile.data} />
-        <RecentCard />
-        <MilestonesCard candidate={candidate} />
-        <TogetherCard />
-      </div>
+      {history.isLoading ? (
+        <SkeletonCards label="Loading your day" cards={3} className="mt-7" />
+      ) : !practised ? (
+        // First run: the next step, what it unlocks, and the setup — not five
+        // empty cards. Everything else appears once there is something in it.
+        <div className="stagger mt-7 grid gap-5 lg:grid-cols-3">
+          <FocusCard candidate={candidate} profile={profile.data} sessions={sessions} className="lg:col-span-2" />
+          <div className="space-y-5">
+            {nextDrive(profile.data?.drives ?? []) && <CountdownCard profile={profile.data} />}
+            <WhatYouGetCard />
+          </div>
+          <TogetherStrip />
+        </div>
+      ) : (
+        // Returning: action · habit, then feedback · deadline, then progress ·
+        // rewards, then the week's cohort. Same order down a phone.
+        <div className="stagger mt-7 grid gap-5 lg:grid-cols-3">
+          <FocusCard candidate={candidate} profile={profile.data} sessions={sessions} className="lg:col-span-2" />
+          <HabitCard candidate={candidate} profile={profile.data} sessions={sessions} />
+          <LastInterviewCard sessions={sessions} className="lg:col-span-2" />
+          <CountdownCard profile={profile.data} />
+          <GrowthCard candidate={candidate} className="lg:col-span-2" />
+          <MilestonesCard candidate={candidate} sessions={sessions} />
+          <TogetherStrip />
+        </div>
+      )}
     </>
   );
 }

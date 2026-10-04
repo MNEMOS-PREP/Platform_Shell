@@ -30,6 +30,8 @@ import {
   type Session,
 } from "@ai/core";
 
+import { Face } from "@ai/m06";
+
 import { firstName, looksLikeEmail, normaliseEmail, readEmail, subjectForEmail, writeEmail } from "../lib/account";
 
 interface StaffChoice {
@@ -96,33 +98,34 @@ export function SignIn() {
     }
   };
 
-  const content = (
-    <div className="mx-auto w-full max-w-md">
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden
-          className="bg-brand-gradient grid h-11 w-11 place-items-center rounded-2xl text-white shadow-glow"
-        >
-          <Icon name="sparkles" size={20} />
-        </span>
-        <span>
-          <span className="block font-semibold tracking-tight text-ink">AI Interviewer</span>
-          <span className="block text-xs text-ink-faint">Placement prep that shows its work</span>
-        </span>
-      </div>
+  const brand = (
+    <div className="flex items-center gap-3">
+      <span
+        aria-hidden
+        className="bg-brand-gradient grid h-11 w-11 place-items-center rounded-2xl text-white shadow-glow"
+      >
+        <Icon name="sparkles" size={20} />
+      </span>
+      <span>
+        <span className="block font-semibold tracking-tight text-ink">AI Interviewer</span>
+        <span className="block text-xs text-ink-faint">Placement prep that shows its work</span>
+      </span>
+    </div>
+  );
 
-      <h1 className="mt-10 text-title font-semibold text-ink">
+  const intro = (
+    <>
+      <h1 className="text-title font-semibold text-ink lg:text-display">
         {current ? "Switch account" : (
           <>
             Practise for <span className="text-gradient">placements</span>
           </>
         )}
       </h1>
-      <p className="mt-3 leading-relaxed text-ink-soft">
+      <p className="mt-3 max-w-xl text-[0.9375rem] leading-relaxed text-ink-soft lg:text-lg">
         Mock interviews that follow up like a real panel, and a skill graph that shows what you
         know.
       </p>
-
       {current && (
         <p className="mt-5 inline-flex max-w-full items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-soft">
           <Icon name="checkCircle" size={15} className="shrink-0 text-confirmed" />
@@ -131,9 +134,13 @@ export function SignIn() {
           </span>
         </p>
       )}
+    </>
+  );
 
+  const signInBlock = (
+    <>
       <form
-        className="panel mt-7 space-y-4 p-6"
+        className="panel space-y-4 p-6"
         onSubmit={(event) => {
           event.preventDefault();
           void submit();
@@ -228,27 +235,130 @@ export function SignIn() {
         </section>
       )}
 
-      {!staffMode && !current && (
-        <p className="mt-8 text-center text-xs text-ink-faint">
-          Placement cell?{" "}
-          <Link to="/signin?staff" className="font-medium text-ink-soft hover:text-ink">
-            Staff sign-in
-          </Link>
-        </p>
-      )}
-    </div>
+      {!staffMode && !current && <StaffLink className="mt-8 hidden lg:block" />}
+    </>
   );
 
-  if (current) return <div className="py-4">{content}</div>;
+  if (current) {
+    return (
+      <div className="py-4">
+        <div className="mx-auto w-full max-w-md">
+          {brand}
+          <div className="mt-10">{intro}</div>
+          <div className="mt-7">{signInBlock}</div>
+        </div>
+      </div>
+    );
+  }
 
+  /*
+    Signed out, this is the first page a visitor ever sees, so it shows before
+    it asks (2026-10-04): on a laptop the product is beside the form — a real
+    exchange, a band, the skill graph moving — and what you get, in the order
+    you get it. On a phone the form stays high, right under the headline, and
+    the preview follows it: someone who came to sign in should not scroll past
+    a pitch.
+  */
   return (
-    <div className="relative flex min-h-dvh items-center overflow-hidden px-4 py-16">
+    <div className="relative min-h-dvh overflow-hidden px-4 py-12 lg:py-16">
       <div aria-hidden className="bg-grid pointer-events-none absolute inset-0" />
       <div
         aria-hidden
         className="pointer-events-none absolute -top-40 left-1/2 h-[28rem] w-[48rem] -translate-x-1/2 rounded-full bg-brand opacity-[0.14] blur-3xl"
       />
-      <main className="page-in relative w-full">{content}</main>
+      <main className="page-in relative mx-auto grid w-full max-w-md gap-x-16 lg:min-h-[calc(100dvh-8rem)] lg:max-w-6xl lg:grid-cols-[minmax(0,1.15fr)_minmax(0,26rem)] lg:content-center">
+        <div className="lg:col-start-1 lg:row-start-1">
+          {brand}
+          <div className="mt-10">{intro}</div>
+        </div>
+        <div className="mt-7 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:self-center">{signInBlock}</div>
+        <div className="mt-12 lg:col-start-1 lg:row-start-2 lg:mt-8">
+          <Showcase />
+        </div>
+        {/* On a phone the staff link comes last: it is for a different person,
+            and it should not sit between a student and the preview. */}
+        {!staffMode && <StaffLink className="mt-10 lg:hidden" />}
+      </main>
     </div>
+  );
+}
+
+function StaffLink({ className = "" }: { className?: string }) {
+  return (
+    <p className={`text-center text-xs text-ink-faint ${className}`}>
+      Placement cell?{" "}
+      <Link to="/signin?staff" className="font-medium text-ink-soft hover:text-ink">
+        Staff sign-in
+      </Link>
+    </p>
+  );
+}
+
+/** What you get, in the order you get it. */
+const OUTCOMES: { icon: IconName; title: string; sub: string }[] = [
+  { icon: "mic", title: "Practise out loud", sub: "An interviewer that follows up until it finds the edge of what you know." },
+  { icon: "target", title: "See what held", sub: "Every mark points to the exact words of yours it was based on." },
+  { icon: "graph", title: "Know what to fix next", sub: "Your skill graph picks the topic that unblocks the most others." },
+];
+
+/**
+ * The product, before the form: one exchange from an interview, the word it
+ * earned, and the topic it moved. An example, and labelled as one.
+ */
+function Showcase() {
+  return (
+    <section aria-label="What practising here looks like">
+      <div className="panel relative overflow-hidden p-5">
+        <span className="absolute top-4 right-4 rounded-full border border-line px-2 py-0.5 text-[0.625rem] text-ink-faint">
+          Example
+        </span>
+        <div className="flex gap-3 pr-14">
+          <Face name="Priya" size={36} />
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-ink-faint">Priya · Senior Engineer</p>
+            <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink">
+              Why is lookup in a hash map O(1) on average — and what has to be true for that to hold?
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <div className="max-w-[85%] rounded-2xl rounded-br-md border border-brand-line bg-brand-soft px-4 py-3">
+            <p className="text-xs font-medium text-brand">You</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink">
+              The key is hashed straight to a bucket, so there's no scan — as long as keys spread evenly
+              and the table resizes before it fills.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-4 text-xs">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 font-medium text-ink">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-mastery-strong" />
+            Strong
+          </span>
+          <span className="text-ink-soft">covered 3 of 3 key points</span>
+          <span className="ml-auto inline-flex items-center gap-1.5 text-ink-soft">
+            <Icon name="graph" size={13} /> Hashing moved up to <span className="font-medium text-ink">solid</span>
+          </span>
+        </div>
+      </div>
+      <ul className="mt-6 grid gap-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+        {OUTCOMES.map((o, i) => (
+          <li key={o.title} className="flex gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+              <Icon name={o.icon} size={16} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-medium text-ink">
+                <span className="text-ink-faint" data-numeric>
+                  {i + 1}.
+                </span>{" "}
+                {o.title}
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-ink-soft">{o.sub}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

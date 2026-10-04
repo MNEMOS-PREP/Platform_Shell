@@ -74,14 +74,6 @@ const OFF_MENU: FrameNavItem[] = [
   { to: "/signin", label: "Switch account", icon: "users" },
 ];
 
-/** The phone's tab bar: the four places a student goes most, then More. */
-const TABS: FrameNavItem[] = [
-  { to: "/", label: "Today", icon: "compass" },
-  { to: "/mock", label: "Interview", icon: "mic" },
-  { to: "/skills", label: "Skills", icon: "graph" },
-  { to: "/companies", label: "Companies", icon: "building" },
-];
-
 function isActive(item: FrameNavItem, pathname: string): boolean {
   if (item.to === "/") return pathname === "/";
   return pathname === item.to || pathname.startsWith(`${item.to}/`) ||
@@ -267,7 +259,16 @@ function RailLink({ item, pathname }: { item: FrameNavItem; pathname: string }) 
   );
 }
 
-export function Frame({ groups, children }: { groups: FrameNavGroup[]; children: ReactNode }) {
+export function Frame({
+  groups,
+  tabs,
+  children,
+}: {
+  groups: FrameNavGroup[];
+  /** The phone's tab bar: the four places this person goes most, then More. */
+  tabs: FrameNavItem[];
+  children: ReactNode;
+}) {
   const location = useLocation();
   const session = useSession();
 
@@ -416,10 +417,12 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
 
           <nav aria-label="Platform" className="flex-1 space-y-5 overflow-y-auto px-3 pt-2 pb-4">
             {groups.map((group) => (
-              <div key={group.label}>
-                <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft uppercase">
-                  {group.label}
-                </p>
+              <div key={group.label || "main"}>
+                {group.label && (
+                  <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft uppercase">
+                    {group.label}
+                  </p>
+                )}
                 <div className="space-y-0.5">
                   {group.items.map((item) => (
                     <RailLink key={item.to} item={item} pathname={location.pathname} />
@@ -552,7 +555,7 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
       >
         <div className="mx-auto grid max-w-lg grid-cols-5">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const on = isActive(tab, location.pathname);
             return (
               <NavLink
@@ -592,8 +595,10 @@ export function Frame({ groups, children }: { groups: FrameNavGroup[]; children:
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong" aria-hidden />
             {groups.map((group) => (
-              <div key={group.label} className="mb-3">
-                <p className="px-2 pb-1 text-[0.6875rem] font-medium tracking-wide text-ink-faint uppercase">{group.label}</p>
+              <div key={group.label || "main"} className="mb-3">
+                {group.label && (
+                  <p className="px-2 pb-1 text-[0.6875rem] font-medium tracking-wide text-ink-faint uppercase">{group.label}</p>
+                )}
                 {group.items.map((item) => (
                   <Link
                     key={item.to}
