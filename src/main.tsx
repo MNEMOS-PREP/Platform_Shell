@@ -39,6 +39,7 @@ import { m01Routes } from "@ai/m01";
 import { m02Routes } from "@ai/m02";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
 import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
+import { m11Routes } from "@ai/m11";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
 
@@ -321,6 +322,7 @@ function App() {
         {m02Routes}
         {m04Routes}
         {m06Routes}
+        {m11Routes}
         {m13Routes}
         {m15Routes}
 

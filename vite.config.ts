@@ -33,6 +33,7 @@ const API = {
   m04: 8104,
   m05: 8105,
   m06: 8106,
+  m11: 8111,
   m13: 8113,
   m15: 8115,
 } as const;
@@ -45,6 +46,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m02": sibling("jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"),
   "@ai/m04": sibling("Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"),
   "@ai/m06": sibling("Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"),
+  "@ai/m11": sibling("Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"),
   "@ai/m13": sibling("Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"),
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
 };
@@ -84,6 +86,7 @@ const OWNER: Record<string, Mod> = {
   agents: "m06",
   drills: "m06",
   interviews: "m06",
+  voice: "m11",
   calibration: "m13",
   disputes: "m13",
   ensembles: "m13",
@@ -158,6 +161,7 @@ const SCREEN_OWNER: Record<string, Mod> = {
   jds: "m02",
   skills: "m04",
   mock: "m06",
+  voice: "m11",
   score: "m13",
   turns: "m13",
   rubrics: "m13",

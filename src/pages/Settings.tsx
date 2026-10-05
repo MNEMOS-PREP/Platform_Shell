@@ -222,6 +222,22 @@ export function Settings() {
             </div>
           </Section>
 
+          <Section id="voice" title="Voice" sub="The interviewer reads each question aloud; every line is on screen too.">
+            <div className="panel flex flex-wrap items-center gap-3 p-4">
+              <Icon name="mic" size={17} className="shrink-0 text-brand" />
+              <span className="min-w-0 flex-1 text-sm text-ink-soft">
+                Hear each interviewer in the voice this browser gives them, and turn the voice on or off.
+              </span>
+              <button
+                type="button"
+                onClick={() => navigate("/voice")}
+                className="h-9 rounded-lg border border-line px-3.5 text-sm font-medium text-ink hover:border-brand-line"
+              >
+                Hear your interviewers
+              </button>
+            </div>
+          </Section>
+
           <Section id="privacy" title="Your data" sub="What is kept, and your rights over it.">
             <div className="panel p-4">
               {consent.isLoading ? (

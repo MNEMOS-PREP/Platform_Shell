@@ -365,6 +365,14 @@ export function Frame({
       run: () => navigate("/resume/library"),
     },
     {
+      id: "do:voice",
+      group: "Actions",
+      label: "Hear your interviewers",
+      icon: "mic",
+      keywords: "voice sound audio speaker check test listen speech",
+      run: () => navigate("/voice"),
+    },
+    {
       id: "do:jd",
       group: "Actions",
       label: "Paste a job description",
