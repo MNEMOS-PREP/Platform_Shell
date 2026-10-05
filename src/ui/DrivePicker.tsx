@@ -4,7 +4,7 @@
  * and TCS Ninja are different interviews — and the date. Used by the welcome
  * step and by Settings, so both save the same shape to M04's profile.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Icon } from "@ai/core";
 import type { ProfileDrive } from "@ai/m04";
@@ -34,9 +34,22 @@ export function DrivePicker({
   const [date, setDate] = useState("");
   const search = useCompanySearch(q);
   const variants = useDriveVariants(company?.id);
-  const results = q.trim() && !company ? (search.data ?? []).slice(0, 6) : [];
+  const dateRef = useRef<HTMLInputElement>(null);
 
   const companyName = company?.canonical_name ?? typed;
+  // Closed once a company is chosen either way — from M15's list or typed. It
+  // used to close only for a listed one, so "Use “Amazon”" took the name but
+  // left the list open over the date, and looked like it did nothing.
+  const searching = Boolean(q.trim()) && !companyName;
+  const results = searching ? (search.data ?? []).slice(0, 6) : [];
+  const open = searching && (results.length > 0 || !search.isLoading);
+
+  const pick = (c: Company | null) => {
+    if (c) setCompany(c);
+    else setTyped(q.trim());
+    // The date is the next thing to fill; wait a frame for the list to close.
+    requestAnimationFrame(() => dateRef.current?.focus());
+  };
   const chosen = (variants.data ?? []).find((v) => v.id === variant);
   const label = companyName ? (chosen ? `${companyName} · ${chosen.name}` : companyName) : "";
 
@@ -102,32 +115,48 @@ export function DrivePicker({
 
       <div className="rounded-xl border border-dashed border-line p-4">
         <div className="relative">
-          <label className="block text-xs font-medium text-ink-soft">
-            Company
-            {companyName ? (
+          {companyName ? (
+            // Not a <label>: a label hands every click inside it to its first
+            // button, so a click on the name itself cleared the choice.
+            <div className="text-xs font-medium text-ink-soft">
+              Company
               <span className="mt-1.5 flex h-10 items-center gap-2 rounded-lg border border-brand-line bg-brand-soft px-3 text-sm text-ink">
                 <span className="flex-1 truncate">{companyName}</span>
                 <button type="button" onClick={reset} aria-label="Choose another company" className="text-ink-soft hover:text-ink">
                   <Icon name="close" size={14} />
                 </button>
               </span>
-            ) : (
+            </div>
+          ) : (
+            <label className="block text-xs font-medium text-ink-soft">
+              Company
               <input
                 className={`${input} mt-1.5`}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && q.trim()) {
+                    e.preventDefault();
+                    // Wait for M15's answer, or "TCS" would be taken as typed
+                    // text and lose its company page and drive variants.
+                    if (search.isLoading && !results.length) return;
+                    pick(results[0] ?? null);
+                  } else if (e.key === "Escape") {
+                    setQ("");
+                  }
+                }}
                 placeholder="Search companies — TCS, Infosys, Zoho…"
                 autoComplete="off"
               />
-            )}
-          </label>
-          {results.length > 0 || (q.trim() && !company && !search.isLoading) ? (
+            </label>
+          )}
+          {open ? (
             <ul className="panel absolute inset-x-0 top-full z-20 mt-1 max-h-60 overflow-y-auto p-1 shadow-raised">
               {results.map((c) => (
                 <li key={c.id}>
                   <button
                     type="button"
-                    onClick={() => setCompany(c)}
+                    onClick={() => pick(c)}
                     className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-surface-sunken"
                   >
                     {c.canonical_name}
@@ -138,7 +167,7 @@ export function DrivePicker({
               <li>
                 <button
                   type="button"
-                  onClick={() => setTyped(q.trim())}
+                  onClick={() => pick(null)}
                   className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-ink-soft hover:bg-surface-sunken"
                 >
                   <Icon name="plus" size={14} /> Use “{q.trim()}”
@@ -165,7 +194,14 @@ export function DrivePicker({
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="block text-xs font-medium text-ink-soft">
             Date
-            <input type="date" min={today()} className={`${input} mt-1.5 w-44`} value={date} onChange={(e) => setDate(e.target.value)} />
+            <input
+              ref={dateRef}
+              type="date"
+              min={today()}
+              className={`${input} mt-1.5 w-44`}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
           </label>
           <button
             type="button"
