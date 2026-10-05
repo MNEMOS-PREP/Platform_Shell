@@ -33,6 +33,7 @@
         platform.ps1 -Check       report what is on disk and reachable
         platform.ps1 -ShellOnly   assume the modules are already up
         platform.ps1 -Seed        load every module's demo data, launch nothing
+        platform.ps1 -Stop        close every module tab and the shell (stop.ps1)
 
     Every mode but -Seed also says where each module will find a model key.
     A module that calls a model runs without one - each degrades and says so
@@ -44,7 +45,8 @@
 param(
     [switch] $Check,
     [switch] $ShellOnly,
-    [switch] $Seed
+    [switch] $Seed,
+    [switch] $Stop
 )
 
 $ErrorActionPreference = 'Stop'
@@ -67,6 +69,22 @@ $modules = @(Get-PlatformModules -Root $root)
 function Test-Port {
     param([int] $Port)
     return [bool] (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue)
+}
+
+# -- stop -------------------------------------------------------------------
+
+# The same as Q in the HOME tab, from any terminal - including after the HOME
+# tab was closed and the modules were left running.
+if ($Stop) {
+    . (Join-Path $PSScriptRoot 'stop.ps1')
+    Write-Host ''
+    Write-Host '  Closing the platform...' -ForegroundColor DarkGray
+    Write-Host ''
+    $null = Stop-Platform -Root $root
+    Write-Host ''
+    Write-Host '  Done.' -ForegroundColor Green
+    Write-Host ''
+    exit 0
 }
 
 # -- seed -------------------------------------------------------------------
