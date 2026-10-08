@@ -1076,19 +1076,19 @@ function StageTile({ stage }: { stage: Stage }) {
             </span>
           )}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-ink-faint">{stage.blurb}</span>
+        <span className="mt-0.5 line-clamp-2 block text-xs text-ink-faint">{stage.blurb}</span>
       </span>
     </>
   );
   if (stage.to) {
     return (
-      <Link to={stage.to} className="panel flex items-center gap-3 p-3.5 hover:border-brand-line">
+      <Link to={stage.to} className="panel flex min-w-0 items-center gap-3 p-3.5 hover:border-brand-line">
         {inner}
       </Link>
     );
   }
   return (
-    <div className={`flex items-center gap-3 rounded-panel p-3.5 ${stage.kind === "planned" ? "border border-dashed border-line" : "panel opacity-80"}`}>
+    <div className={`flex min-w-0 items-center gap-3 rounded-panel p-3.5 ${stage.kind === "planned" ? "border border-dashed border-line" : "panel opacity-80"}`}>
       {inner}
     </div>
   );
@@ -1098,7 +1098,9 @@ function Platform() {
   return (
     <section className="mt-10">
       <h2 className="text-sm font-medium text-ink-soft">Everything on the platform</h2>
-      <div className="stagger mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {/* grid-cols-1 is minmax(0, 1fr): without a template the column is as
+          wide as the longest one-line description, wider than a phone. */}
+      <div className="stagger mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {JOURNEY.map((stage) => (
           <StageTile key={stage.module} stage={stage} />
         ))}
@@ -1127,7 +1129,7 @@ export function Home() {
   const session = useSession();
   const candidate = candidateIdOf(session);
   const profile = useProfile(candidate);
-  const history = useHistory(120);
+  const history = useHistory(120, Boolean(candidate));
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
 
   if (!candidate) {

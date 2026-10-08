@@ -27,11 +27,30 @@ async function getJson<T>(url: string): Promise<T> {
   return (await r.json()) as T;
 }
 
-/** /v1/deps returns a bare object when a module declares exactly one upstream. */
+/**
+ * /v1/deps has two shapes on this platform: a bare list (M01, M02, M06), and
+ * `{module, dependencies: [...], note}` (M04, M05, M13, M15). The second
+ * used to be read as ONE dependency — a nameless row saying "down, no
+ * base_url" under three healthy modules (2026-10-08). A bare object with a
+ * `module_id` is one dependency, as before.
+ */
 function asList(payload: unknown): DependencyStatus[] {
   if (Array.isArray(payload)) return payload as DependencyStatus[];
-  if (payload && typeof payload === "object") return [payload as DependencyStatus];
+  if (payload && typeof payload === "object") {
+    const wrapped = (payload as { dependencies?: unknown }).dependencies;
+    if (Array.isArray(wrapped)) return wrapped as DependencyStatus[];
+    if ("module_id" in payload) return [payload as DependencyStatus];
+  }
   return [];
+}
+
+/** What a module says about itself beside its list — M04: "a root". */
+function noteOf(payload: unknown): string | null {
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const note = (payload as { note?: unknown }).note;
+    return typeof note === "string" ? note : null;
+  }
+  return null;
 }
 
 export function System() {
@@ -76,14 +95,14 @@ export function System() {
         </p>
       </header>
 
-      <div className="mt-7 grid gap-4 2xl:grid-cols-2">
+      <div className="mt-7 grid grid-cols-1 gap-4 2xl:grid-cols-2">
         {BACKENDS.map((b, i) => {
           const h = health[i];
           const d = deps[i];
           const up = h.data?.status === "ok";
 
           return (
-            <section key={b.id} className="panel p-5">
+            <section key={b.id} className="panel min-w-0 p-5">
               <header className="flex flex-wrap items-center gap-3">
                 <h2 className="text-section font-semibold text-ink">{b.label}</h2>
                 <span className="provenance">:{b.port}</span>
@@ -109,7 +128,12 @@ export function System() {
                     Cannot ask this module what it needs while it is down.
                   </p>
                 )}
-                {d.data !== undefined && <DependencyTable statuses={asList(d.data)} />}
+                {d.data !== undefined &&
+                  (asList(d.data).length === 0 && noteOf(d.data) ? (
+                    <p className="text-sm text-ink-soft">{noteOf(d.data)}</p>
+                  ) : (
+                    <DependencyTable statuses={asList(d.data)} />
+                  ))}
               </div>
             </section>
           );
