@@ -313,7 +313,7 @@ function Showcase() {
           Example
         </span>
         <div className="flex gap-3 pr-14">
-          <Face name="Priya" size={36} />
+          <Face persona="methodical_engineer" name="Priya" size={36} />
           <div className="min-w-0">
             <p className="text-xs font-medium text-ink-faint">Priya · Senior Engineer</p>
             <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink">
