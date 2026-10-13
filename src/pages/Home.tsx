@@ -55,6 +55,7 @@ import {
 import { useCandidateResumes } from "@ai/m01";
 import {
   useBottlenecks,
+  useCurriculum,
   useMastery,
   usePracticeConsent,
   useProfile,
@@ -74,6 +75,7 @@ import { useDisputeQueue, useOutbox } from "@ai/m13";
 import { useClaimReports, useReviewQueue } from "@ai/m15";
 
 import { firstName } from "../lib/account";
+import { coversLine, practisable, practiseCourseLink } from "../lib/courses";
 import { countdownLabel, daysUntil, downloadIcs, driveIcs, milestones, nextDrive } from "../lib/goals";
 import { JOURNEY, type Stage } from "../lib/journey";
 import {
@@ -678,8 +680,11 @@ function GrowthCard({ candidate, className = "" }: { candidate: string; classNam
         <div>
           <CardLabel icon="graph">Your skill graph</CardLabel>
           <p className="mt-3 flex items-baseline gap-2">
+            {/* The legend's own total, not `totals.measured`: that counts a
+                topic moved only by its neighbours' answers, which the legend
+                (rightly) has no colour for, and 15 above 14 read as a bug. */}
             <span className="text-4xl font-semibold tracking-tight text-ink" data-numeric>
-              {mastery.data ? mastery.data.totals.measured : "—"}
+              {mastery.data ? total : "—"}
             </span>
             <span className="text-sm text-ink-faint">
               of {mastery.data?.totals.in_ontology ?? "—"} topics shown so far
@@ -727,7 +732,7 @@ function GrowthCard({ candidate, className = "" }: { candidate: string; classNam
             ))}
             <li className="flex items-center gap-1.5 text-ink-faint">
               <span className="h-2 w-2 rounded-full border border-dashed border-line-strong" />
-              not tested {mastery.data?.not_yet_tested.count ?? 0}
+              not tested {(mastery.data?.totals.in_ontology ?? 0) - total}
             </li>
           </ul>
         </div>
@@ -886,6 +891,50 @@ function TogetherStrip() {
 }
 
 /** One line, above everything, when something is stopping the loop. */
+/**
+ * This semester's courses, each a practice on what its syllabus teaches
+ * (2026-10-13). The welcome step promises it ("each course you tick gets its
+ * own practice on Today"); this card is what keeps that promise. It shows only
+ * courses whose syllabus maps to concepts, so every button here plans a real
+ * interview, and nothing at all for a student who has not said their semester.
+ */
+function CoursesCard({ profile, className = "" }: { profile?: StudentProfile; className?: string }) {
+  const curriculum = useCurriculum(profile?.curriculum_id || null);
+  const courses = practisable(curriculum.data, profile?.courses ?? []);
+  if (!profile?.curriculum_id || profile.semester === null || courses.length === 0) return null;
+  return (
+    <Card className={className}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <CardLabel icon="layers">Semester {profile.semester} · your courses</CardLabel>
+          <p className="mt-2 text-sm text-ink-soft">
+            Practise one, and every question is on what its syllabus teaches.
+          </p>
+        </div>
+        <Link to="/settings#courses" className="shrink-0 text-sm font-medium text-brand">
+          Edit
+        </Link>
+      </div>
+      <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {courses.slice(0, 6).map((course) => (
+          <li key={course.code}>
+            <Link
+              to={practiseCourseLink(course)}
+              className="group flex h-full flex-col rounded-xl border border-line bg-surface-sunken/40 p-4 hover:border-brand-line"
+            >
+              <span className="text-sm font-medium text-ink">{course.title}</span>
+              <span className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-faint">{coversLine(course)}</span>
+              <span className="mt-auto inline-flex items-center gap-1.5 pt-3 text-xs font-medium text-brand">
+                Practise <Icon name="arrowRight" size={13} />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 function Nudges({ candidate, profile }: { candidate: string; profile?: StudentProfile }) {
   const consent = usePracticeConsent(candidate);
   if (consent.isLoading || !profile) return null;
@@ -913,7 +962,24 @@ function Nudges({ candidate, profile }: { candidate: string; profile?: StudentPr
         <Icon name="sparkles" size={17} className="shrink-0 text-brand" />
         <span className="flex-1">
           <span className="font-medium">Tell us what you're preparing for</span>
-          <span className="text-ink-soft"> — your role and drive dates, in under a minute.</span>
+          <span className="text-ink-soft"> — your role, semester, courses and drive dates, in a minute or two.</span>
+        </span>
+        <Icon name="arrowRight" size={15} />
+      </Link>
+    );
+  }
+  if (profile.semester === null && profile.year !== "Graduated" && !profile.branch) {
+    // Onboarded before courses existed (2026-10-13): one line, once, not the
+    // whole welcome again.
+    return (
+      <Link
+        to="/settings#profile"
+        className="mt-6 flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink hover:border-brand-line"
+      >
+        <Icon name="layers" size={17} className="shrink-0 text-brand" />
+        <span className="flex-1">
+          <span className="font-medium">Add your semester</span>
+          <span className="text-ink-soft"> — and practise each of your courses from here.</span>
         </span>
         <Icon name="arrowRight" size={15} />
       </Link>
@@ -1038,7 +1104,7 @@ function StaffHome({ admin }: { admin: boolean }) {
         <span className="text-xs text-ink-faint">Counts only — never one student's record.</span>
       </section>
 
-      <Platform />
+      <Platform staff />
     </>
   );
 }
@@ -1056,7 +1122,7 @@ const STAGE_ICON: Record<string, IconName> = {
   M16: "calendar",
 };
 
-function StageTile({ stage }: { stage: Stage }) {
+function StageTile({ stage, link = true }: { stage: Stage; link?: boolean }) {
   const inner = (
     <>
       <span
@@ -1080,7 +1146,7 @@ function StageTile({ stage }: { stage: Stage }) {
       </span>
     </>
   );
-  if (stage.to) {
+  if (stage.to && link) {
     return (
       <Link to={stage.to} className="panel flex min-w-0 items-center gap-3 p-3.5 hover:border-brand-line">
         {inner}
@@ -1088,21 +1154,30 @@ function StageTile({ stage }: { stage: Stage }) {
     );
   }
   return (
-    <div className={`flex min-w-0 items-center gap-3 rounded-panel p-3.5 ${stage.kind === "planned" ? "border border-dashed border-line" : "panel opacity-80"}`}>
+    <div
+      className={`flex min-w-0 items-center gap-3 rounded-panel p-3.5 ${
+        stage.kind === "planned" ? "border border-dashed border-line" : `panel${link ? " opacity-80" : ""}`
+      }`}
+    >
       {inner}
     </div>
   );
 }
 
-function Platform() {
+/**
+ * The platform, module by module. For staff it describes what students get
+ * and links nowhere: every tile opened a student's own page, which has nothing
+ * for someone who is nobody's candidate (2026-10-13).
+ */
+function Platform({ staff = false }: { staff?: boolean }) {
   return (
     <section className="mt-10">
-      <h2 className="text-sm font-medium text-ink-soft">Everything on the platform</h2>
+      <h2 className="text-sm font-medium text-ink-soft">{staff ? "What students get" : "Everything on the platform"}</h2>
       {/* grid-cols-1 is minmax(0, 1fr): without a template the column is as
           wide as the longest one-line description, wider than a phone. */}
       <div className="stagger mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {JOURNEY.map((stage) => (
-          <StageTile key={stage.module} stage={stage} />
+          <StageTile key={stage.module} stage={stage} link={!staff} />
         ))}
       </div>
       <p className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-ink-faint">
@@ -1184,6 +1259,7 @@ export function Home() {
             {nextDrive(profile.data?.drives ?? []) && <CountdownCard profile={profile.data} />}
             <WhatYouGetCard />
           </div>
+          <CoursesCard profile={profile.data} className="lg:col-span-3" />
           <TogetherStrip />
         </div>
       ) : (
@@ -1192,6 +1268,9 @@ export function Home() {
         <div className="stagger mt-7 grid gap-5 lg:grid-cols-3">
           <FocusCard candidate={candidate} profile={profile.data} sessions={sessions} className="lg:col-span-2" />
           <HabitCard candidate={candidate} profile={profile.data} sessions={sessions} />
+          {/* What to practise next, after the one thing and the habit: the
+              student's own courses, ahead of feedback on the last interview. */}
+          <CoursesCard profile={profile.data} className="lg:col-span-3" />
           <LastInterviewCard sessions={sessions} className="lg:col-span-2" />
           <CountdownCard profile={profile.data} />
           <GrowthCard candidate={candidate} className="lg:col-span-2" />

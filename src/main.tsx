@@ -49,6 +49,7 @@ import { Help } from "./pages/Help";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { NotBuilt } from "./pages/NotBuilt";
+import { Practice } from "./pages/Practice";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
 import { Welcome } from "./pages/Welcome";
@@ -136,6 +137,39 @@ const PLATFORM_NAV: FrameNavItem[] = [{ to: "/system", label: "System", icon: "m
 
 /** Screens a brand-new student may reach before the welcome step is done. */
 const BEFORE_WELCOME = new Set(["/welcome", "/signin", "/settings", "/help"]);
+
+/*
+  A student's own pages: the student menu less what staff browse too, and the
+  student screens no menu lists. Staff are nobody's candidate, so these had
+  nothing to show them, and drew a student's first-run screen instead — "Let's
+  start with your resume" to a placement officer (2026-10-13 crawl). The
+  developer's status page under /mock is theirs.
+*/
+const STUDENT_ONLY = [
+  ...STUDENT_NAV.flatMap((group) => group.items)
+    .filter((item) => item !== TODAY && item !== COMPANIES && item !== JD)
+    .map((item) => item.to),
+  "/resumes",
+  "/me",
+  "/skipped",
+];
+const STAFF_TOO = new Set(["/mock/system"]);
+
+function isStudentOnly(path: string): boolean {
+  if (STAFF_TOO.has(path)) return false;
+  return STUDENT_ONLY.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+function StudentOnlyNotice() {
+  return (
+    <div className="mx-auto max-w-xl py-16">
+      <h1 className="text-title font-semibold text-ink">This is a student's page.</h1>
+      <p className="mt-3 text-ink-soft">
+        Staff see the cohort's counts, never one student's record. Your queues are on Today.
+      </p>
+    </div>
+  );
+}
 
 /** A staff-only screen, for a student who follows a link to one. */
 function StaffOnly({ children }: { children: ReactNode }) {
@@ -304,6 +338,9 @@ function App() {
     <Frame groups={nav} tabs={staffRole ? STAFF_TABS : STUDENT_TABS}>
       <MockTargetsContext.Provider value={targets}>
       <ScreenBoundary key={`${who}${location.pathname}`}>
+      {staffRole && isStudentOnly(location.pathname) ? (
+        <StudentOnlyNotice />
+      ) : (
       <Routes key={who}>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/" element={<Home />} />
@@ -312,6 +349,9 @@ function App() {
         <Route path="/answers" element={<Answers />} />
         <Route path="/help" element={<Help />} />
         <Route path="/system" element={<StaffOnly><System /></StaffOnly>} />
+        {/* M15's "Practise this now" hands a topic to /practice; here that is
+            M06's focused interview on it (pages/Practice.tsx). */}
+        <Route path="/practice" element={<Practice />} />
 
         {/* Every module mounts whole. M01 and M02 used to claim the index, so
             only two of their screens were mounted by name and every other page
@@ -332,6 +372,7 @@ function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      )}
       </ScreenBoundary>
       </MockTargetsContext.Provider>
     </Frame>

@@ -17,6 +17,8 @@ import { useNavigate } from "react-router-dom";
 import { Icon, PageHeader, SkeletonRows, candidateIdOf, signIn, signOut, useSession } from "@ai/core";
 import {
   downloadMyData,
+  useCurricula,
+  useCurriculum,
   useDeleteMyData,
   useGrantConsent,
   usePracticeConsent,
@@ -26,8 +28,10 @@ import {
 } from "@ai/m04";
 
 import { readEmail, writeEmail } from "../lib/account";
+import { SEMESTERS, defaultCourses, programmeLabel, semesterOf, yearForSemester } from "../lib/courses";
 import { dailyReminderIcs, downloadIcs } from "../lib/goals";
 import { GOAL_OPTIONS, writeGoal } from "../lib/practice";
+import { CoursePicker } from "../ui/CoursePicker";
 import { DrivePicker } from "../ui/DrivePicker";
 
 function Section({
@@ -54,8 +58,13 @@ function Section({
   );
 }
 
+// `block`: without it a narrow input (the reminder, the DELETE box) sat on its
+// label's line instead of under it, which no other field on the page did.
 const field =
-  "mt-1.5 h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-brand";
+  "mt-1.5 block h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-brand";
+
+const OTHER = "other";
+const GRADUATED = "graduated";
 
 function Saved({ when }: { when: boolean }) {
   return when ? (
@@ -74,20 +83,34 @@ export function Settings() {
   const consent = usePracticeConsent(candidate);
   const grant = useGrantConsent(candidate);
   const wipe = useDeleteMyData(candidate);
+  const curricula = useCurricula();
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [year, setYear] = useState("");
+  const [programme, setProgramme] = useState("");
+  const [term, setTerm] = useState("");
   const [branch, setBranch] = useState("");
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [confirm, setConfirm] = useState("");
   const [exporting, setExporting] = useState(false);
+  // The saved programme drives the Courses section, not the unsaved select.
+  const savedCurriculum = useCurriculum(profile.data?.curriculum_id || null);
+  // The one being picked, so saving a new programme or semester can re-tick
+  // that semester's courses in the same request.
+  const pickedCurriculum = useCurriculum(programme && programme !== OTHER ? programme : null);
 
   useEffect(() => {
     if (!profile.data) return;
     setName(profile.data.display_name);
     setRole(profile.data.target_role);
-    setYear(profile.data.year);
+    setProgramme(profile.data.curriculum_id || (profile.data.branch ? OTHER : ""));
+    setTerm(
+      profile.data.semester !== null
+        ? String(profile.data.semester)
+        : profile.data.year === "Graduated"
+          ? GRADUATED
+          : "",
+    );
     setBranch(profile.data.branch);
   }, [profile.data]);
 
@@ -115,6 +138,25 @@ export function Settings() {
   const p = profile.data;
   const email = readEmail();
 
+  /** The profile form's save. A new programme or semester re-ticks that
+   *  semester's courses; the old ones belonged to another timetable. */
+  const saveProfile = () => {
+    const known = curricula.data?.find((c) => c.id === programme);
+    const semester = /^[1-8]$/.test(term) ? Number(term) : null;
+    const moved = (known?.id ?? "") !== (p?.curriculum_id ?? "") || semester !== (p?.semester ?? null);
+    const fresh = moved && known && semester !== null ? defaultCourses(semesterOf(pickedCurriculum.data, semester)) : null;
+    persist("profile", {
+      display_name: name.trim(),
+      target_role: role.trim(),
+      year: term === GRADUATED ? "Graduated" : yearForSemester(semester),
+      branch: known ? known.short : programme === OTHER ? branch.trim() : "",
+      curriculum_id: known?.id ?? "",
+      semester,
+      ...(fresh ? { courses: fresh } : moved ? { courses: [] } : {}),
+    });
+    if (session && name.trim()) signIn({ ...session, name: name.trim() });
+  };
+
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader title="Settings" subtitle="Your profile, your goals, and your data." />
@@ -128,8 +170,7 @@ export function Settings() {
               className="space-y-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                persist("profile", { display_name: name.trim(), target_role: role.trim(), year, branch: branch.trim() });
-                if (session && name.trim()) signIn({ ...session, name: name.trim() });
+                saveProfile();
               }}
             >
               <label className="block text-xs font-medium text-ink-soft">
@@ -140,21 +181,37 @@ export function Settings() {
                 Role you're aiming for
                 <input className={field} value={role} onChange={(e) => setRole(e.target.value)} placeholder="Software engineer" />
               </label>
+              <label className="block text-xs font-medium text-ink-soft">
+                Programme
+                <select className={field} value={programme} onChange={(e) => setProgramme(e.target.value)}>
+                  <option value="">—</option>
+                  {(curricula.data ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {programmeLabel(c)}
+                    </option>
+                  ))}
+                  <option value={OTHER}>Another branch</option>
+                </select>
+              </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-medium text-ink-soft">
-                  Year
-                  <select className={field} value={year} onChange={(e) => setYear(e.target.value)}>
+                  Current semester
+                  <select className={field} value={term} onChange={(e) => setTerm(e.target.value)}>
                     <option value="">—</option>
-                    <option>2nd year</option>
-                    <option>3rd year</option>
-                    <option>Final year</option>
-                    <option>Graduated</option>
+                    {SEMESTERS.map((n) => (
+                      <option key={n} value={String(n)}>
+                        Semester {n}
+                      </option>
+                    ))}
+                    <option value={GRADUATED}>Graduated</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-ink-soft">
-                  Branch
-                  <input className={field} value={branch} onChange={(e) => setBranch(e.target.value)} />
-                </label>
+                {programme === OTHER && (
+                  <label className="block text-xs font-medium text-ink-soft">
+                    Branch
+                    <input className={field} value={branch} onChange={(e) => setBranch(e.target.value)} />
+                  </label>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <button type="submit" disabled={save.isPending} className="h-9 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-50">
@@ -164,6 +221,32 @@ export function Settings() {
               </div>
               {email && <p className="text-xs text-ink-faint">Signed in with {email}.</p>}
             </form>
+          </Section>
+
+          <Section
+            id="courses"
+            title="Courses"
+            sub="This semester's, from your programme's curriculum. Each one that teaches something an interview asks gets a practice on Today."
+          >
+            {!p?.curriculum_id || p.semester === null ? (
+              <p className="rounded-xl border border-dashed border-line p-4 text-sm text-ink-soft">
+                Pick your programme and current semester under Profile, and save — this semester's courses
+                appear here.
+              </p>
+            ) : savedCurriculum.data ? (
+              <CoursePicker
+                idPrefix="settings-course"
+                curriculum={savedCurriculum.data}
+                semester={p.semester}
+                selected={p.courses}
+                onChange={(courses) => persist("courses", { courses })}
+              />
+            ) : (
+              <SkeletonRows label="Loading your courses" rows={4} />
+            )}
+            <div className="mt-2">
+              <Saved when={savedAt === "courses"} />
+            </div>
           </Section>
 
           <Section id="drives" title="Drives" sub="Today counts down to the next one, and the interview setup offers each.">
@@ -247,7 +330,13 @@ export function Settings() {
                   <Icon name="checkCircle" size={17} className="mt-0.5 shrink-0 text-confirmed" />
                   <span>
                     <span className="font-medium text-ink">Your progress is being remembered.</span> You
-                    agreed on {new Date(consent.data.granted_at).toLocaleDateString()}. Your answers and
+                    agreed on{" "}
+                    {new Date(consent.data.granted_at).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                    . Your answers and
                     marks build your skill graph; placement staff see counts, never your answers.
                   </span>
                 </p>

@@ -299,8 +299,12 @@ export function Frame({
     }
   }, [location.pathname]);
 
-  const sections = rail?.sections ?? [];
   const items = groups.flatMap((g) => g.items);
+  // A published link the platform rail already has, or the root, is dropped:
+  // M15's global sections ("Home", "Companies") lit Companies twice and added
+  // a second "Home" that meant Today here (2026-10-13). Its own pages stay.
+  const platformPaths = new Set(["/", ...items.map((item) => item.to)]);
+  const sections = (rail?.sections ?? []).filter((section) => !platformPaths.has(section.to));
   const current =
     items.find((item) => isActive(item, location.pathname)) ??
     OFF_MENU.find((item) => isActive(item, location.pathname));

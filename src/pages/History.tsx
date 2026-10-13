@@ -46,7 +46,12 @@ function Row({ s }: { s: SessionSummary }) {
           </span>
           <span className="block text-xs text-ink-faint">
             {new Date(s.created_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
-            {minutes !== null ? ` · ${minutes} of ${s.requested_minutes} min` : ` · ${s.requested_minutes} min planned`}
+            {minutes === null
+              ? ` · ${s.requested_minutes} min planned`
+              : minutes > s.requested_minutes
+                ? // "37 of 30 min" read as a broken counter; it ran over.
+                  ` · ${minutes} min, planned ${s.requested_minutes}`
+                : ` · ${minutes} of ${s.requested_minutes} min`}
           </span>
         </span>
         <span
@@ -156,7 +161,9 @@ export function History() {
                     <Link to={`/skills?concept=${encodeURIComponent(m.id)}`} className="flex-1 truncate text-ink hover:text-brand">
                       {m.name}
                     </Link>
-                    <span className="text-xs text-ink-faint">{m.answers} answers</span>
+                    <span className="text-xs text-ink-faint" title={`First answered ${relativeDays(m.since)}`}>
+                      {m.answers} answers
+                    </span>
                   </li>
                 ))}
                 {movers.down.slice(0, 3).map((m) => (
@@ -165,7 +172,11 @@ export function History() {
                     <Link to={`/skills?concept=${encodeURIComponent(m.id)}`} className="flex-1 truncate text-ink hover:text-brand">
                       {m.name}
                     </Link>
-                    <span className="text-xs text-ink-faint">since {relativeDays(m.since)}</span>
+                    {/* The same column as the rises: "since 2 months ago" read
+                        as a different measure, and was ungrammatical. */}
+                    <span className="text-xs text-ink-faint" title={`First answered ${relativeDays(m.since)}`}>
+                      {m.answers} answers
+                    </span>
                   </li>
                 ))}
                 {movers.held > 0 && (
