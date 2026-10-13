@@ -16,6 +16,18 @@
  * first interview whose answers it covers, framed as what it buys. That is the
  * "ask in context" rule mobile permission prompts follow.
  *
+ * ── Their semester and courses (2026-10-13) ─────────────────────────────────
+ * "Year" and a free-text "Branch" became a programme and a semester, and the
+ * semester's courses come straight after, ticked, with an elective picker per
+ * slot. The programmes and courses are M04's `/v1/curricula`, built from the
+ * college's own curriculum PDFs, so the list is the student's real timetable,
+ * not one we typed. Each ticked course that teaches something an interview
+ * asks becomes a practice on Today (lib/courses.ts), and a mixed interview is
+ * drawn from what the courses have covered (M04 `/coursework`, M06's planner)
+ * — the step promises both and those two keep it. A branch without a
+ * curriculum keeps the free-text box, and the courses step is skipped rather
+ * than shown empty.
+ *
  * ── And it ends IN the product ──────────────────────────────────────────────
  * The last button used to say "Take me to Today", which then asked for a
  * resume: the momentum was spent one step before the aha moment. It now
@@ -25,11 +37,13 @@
  * One question per screen, each skippable; answers saved to M04's profile, so
  * they follow the student to any device.
  */
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
-import { Icon, candidateIdOf, signIn, useSession } from "@ai/core";
+import { Icon, SkeletonRows, candidateIdOf, signIn, useSession } from "@ai/core";
 import {
+  useCurricula,
+  useCurriculum,
   useGrantConsent,
   usePracticeConsent,
   useProfile,
@@ -40,8 +54,17 @@ import {
 import { useCreateSession } from "@ai/m06";
 
 import { firstName } from "../lib/account";
+import {
+  SEMESTERS,
+  defaultCourses,
+  practisable,
+  programmeLabel,
+  semesterOf,
+  yearForSemester,
+} from "../lib/courses";
 import { countdownLabel, dailyReminderIcs, daysUntil, downloadIcs, nextDrive } from "../lib/goals";
 import { GOAL_OPTIONS, writeGoal } from "../lib/practice";
+import { CoursePicker } from "../ui/CoursePicker";
 import { DrivePicker } from "../ui/DrivePicker";
 
 function Shell({
@@ -117,6 +140,20 @@ const field =
 /** The gentlest real start, and what Today's "Start my first interview" opens too. */
 const FIRST_INTERVIEW = { minutes: 15, mode: "practice" } as const;
 
+type StepKey = "you" | "courses" | "drives" | "rhythm" | "consent";
+
+const STEP_LABEL: Record<StepKey, string> = {
+  you: "You",
+  courses: "Your courses",
+  drives: "Your drives",
+  rhythm: "Your rhythm",
+  consent: "Save your progress",
+};
+
+/** A programme the college has published no curriculum for (yet). */
+const OTHER = "other";
+const GRADUATED = "graduated";
+
 export function Welcome() {
   const session = useSession();
   const candidate = candidateIdOf(session);
@@ -126,31 +163,86 @@ export function Welcome() {
   const consent = usePracticeConsent(candidate);
   const save = useSaveProfile(candidate);
   const create = useCreateSession();
-
-  // Consent is asked once, never re-asked: a student who already gave it (the
-  // demo student, a second visit) has three steps, not four. Latched when it
-  // first loads, so granting it on the last step doesn't shrink the count
-  // under the student's feet.
-  const hadConsent = useRef<boolean | null>(null);
-  if (consent.isSuccess && hadConsent.current === null) hadConsent.current = Boolean(consent.data);
-  const askConsent = hadConsent.current !== true;
-  const steps = askConsent
-    ? (["You", "Your drives", "Your rhythm", "Save your progress"] as const)
-    : (["You", "Your drives", "Your rhythm"] as const);
+  const curricula = useCurricula();
 
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
   const [declined, setDeclined] = useState(false);
   const [name, setName] = useState(session?.name && session.name !== "New student" ? session.name : "");
   const [role, setRole] = useState("");
-  const [year, setYear] = useState("");
+  // A curriculum id, OTHER, or "" for not said.
+  const [programme, setProgramme] = useState("");
+  // "1".."8", GRADUATED, or "" for not said.
+  const [term, setTerm] = useState("");
   const [branch, setBranch] = useState("");
+  const [courses, setCourses] = useState<string[]>([]);
+  // The programme and semester the ticks were defaulted for, so going back and
+  // changing either re-ticks the new semester instead of keeping the old one's.
+  const [coursesFor, setCoursesFor] = useState("");
   const [companies, setCompanies] = useState<ProfileCompany[]>([]);
   const [drives, setDrives] = useState<ProfileDrive[]>([]);
   const [goal, setGoal] = useState(3);
   const [reminder, setReminder] = useState("");
 
+  const curriculumId = programme && programme !== OTHER ? programme : null;
+  const curriculum = useCurriculum(curriculumId);
+  const semester = /^[1-8]$/.test(term) ? Number(term) : null;
+  const pickKey = `${programme}:${term}`;
+  useEffect(() => {
+    if (!curriculum.data || semester === null || coursesFor === pickKey) return;
+    setCourses(defaultCourses(semesterOf(curriculum.data, semester)));
+    setCoursesFor(pickKey);
+  }, [curriculum.data, semester, pickKey, coursesFor]);
+
+  // Answers already on the profile (given in Settings, or in a welcome left
+  // half-way) are where this starts, not blanks: finishing would otherwise
+  // save "—" over a semester the student had already told us (2026-10-13).
+  const seeded = useRef(false);
+  useEffect(() => {
+    const saved = profile.data;
+    if (!saved || seeded.current) return;
+    seeded.current = true;
+    if (saved.display_name) setName(saved.display_name);
+    if (saved.target_role) setRole(saved.target_role);
+    if (saved.curriculum_id) setProgramme(saved.curriculum_id);
+    else if (saved.branch) {
+      setProgramme(OTHER);
+      setBranch(saved.branch);
+    }
+    if (saved.semester !== null) setTerm(String(saved.semester));
+    else if (saved.year === "Graduated") setTerm(GRADUATED);
+    if (saved.curriculum_id && saved.semester !== null) {
+      setCourses(saved.courses);
+      setCoursesFor(`${saved.curriculum_id}:${saved.semester}`);
+    }
+    if (saved.companies.length) setCompanies(saved.companies);
+    if (saved.drives.length) setDrives(saved.drives);
+    setGoal(saved.weekly_goal);
+    if (saved.reminder_time) setReminder(saved.reminder_time);
+  }, [profile.data]);
+
+  // Consent is asked once, never re-asked: a student who already gave it (the
+  // demo student, a second visit) has no consent step. Latched when it first
+  // loads, so granting it on the last step doesn't shrink the count under the
+  // student's feet.
+  const hadConsent = useRef<boolean | null>(null);
+  if (consent.isSuccess && hadConsent.current === null) hadConsent.current = Boolean(consent.data);
+  const askConsent = hadConsent.current !== true;
+  const steps: StepKey[] = [
+    "you",
+    ...(curriculumId && semester !== null ? (["courses"] as const) : []),
+    "drives",
+    "rhythm",
+    ...(askConsent ? (["consent"] as const) : []),
+  ];
+  const at = Math.min(step, steps.length - 1);
+  const key = steps[at]!;
+  const labels = steps.map((k) => STEP_LABEL[k]);
+  const next = () => setStep(at + 1);
+
   if (!candidate) return <Navigate to="/" replace />;
+
+  const known = curricula.data?.find((c) => c.id === curriculumId);
 
   /** Save every answer, stamp the welcome as done, then show the last screen. */
   const saveAll = () =>
@@ -158,8 +250,11 @@ export function Welcome() {
       {
         display_name: name.trim(),
         target_role: role.trim(),
-        year,
-        branch: branch.trim(),
+        year: term === GRADUATED ? "Graduated" : yearForSemester(semester),
+        branch: known ? known.short : branch.trim(),
+        curriculum_id: known ? known.id : "",
+        ...(term === GRADUATED ? { semester: null } : semester !== null ? { semester } : {}),
+        courses: known && semester !== null ? courses : [],
         companies,
         drives,
         weekly_goal: goal,
@@ -191,6 +286,7 @@ export function Welcome() {
   /* ── the last screen: into the product ─────────────────────────────────── */
   if (done) {
     const drive = nextDrive(drives);
+    const practice = known && semester !== null ? practisable(curriculum.data, courses) : [];
     return (
       <div className="mx-auto w-full max-w-xl py-6">
         <div className="page-in">
@@ -202,6 +298,12 @@ export function Welcome() {
             Your first interview is 15 minutes of practice: hints on, and you can try a question again.
             You'll leave with notes on every answer.
           </p>
+          {practice.length > 0 && (
+            <p className="mt-3 text-sm text-ink-soft">
+              Today also has a practice for each of your {practice.length} course
+              {practice.length === 1 ? "" : "s"}, on what its syllabus teaches.
+            </p>
+          )}
           {drive && (
             <p className="mt-3 text-sm text-ink-soft">
               After that, Today counts down to <span className="font-medium text-ink">{drive.label}</span>{" "}
@@ -224,14 +326,16 @@ export function Welcome() {
     );
   }
 
-  /* ── 1 · what you're preparing for ─────────────────────────────────────── */
-  if (step === 0) {
+  /* ── what you're preparing for, and where you are in your degree ───────── */
+  if (key === "you") {
     return (
-      <Shell step={0} steps={steps}>
+      <Shell step={at} steps={labels}>
         <h1 className="text-title font-semibold text-ink">
           Welcome{shown ? `, ${shown}` : ""}. What are you preparing for?
         </h1>
-        <p className="mt-2 text-ink-soft">So the interviewer asks what your role will.</p>
+        <p className="mt-2 text-ink-soft">
+          So the interviewer asks what your role will, from what you've studied so far.
+        </p>
         <div className="mt-6 space-y-4">
           <label className="block text-sm font-medium text-ink">
             Your name
@@ -253,35 +357,80 @@ export function Welcome() {
               <option value="Systems engineer" />
             </datalist>
           </label>
+          <label className="block text-sm font-medium text-ink">
+            Your programme
+            <select className={field} value={programme} onChange={(e) => setProgramme(e.target.value)}>
+              <option value="">—</option>
+              {(curricula.data ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {programmeLabel(c)}
+                </option>
+              ))}
+              <option value={OTHER}>Another branch</option>
+            </select>
+          </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-medium text-ink">
-              Year
-              <select className={field} value={year} onChange={(e) => setYear(e.target.value)}>
+              Current semester
+              <select className={field} value={term} onChange={(e) => setTerm(e.target.value)}>
                 <option value="">—</option>
-                <option>2nd year</option>
-                <option>3rd year</option>
-                <option>Final year</option>
-                <option>Graduated</option>
+                {SEMESTERS.map((n) => (
+                  <option key={n} value={String(n)}>
+                    Semester {n}
+                  </option>
+                ))}
+                <option value={GRADUATED}>Graduated</option>
               </select>
             </label>
-            <label className="block text-sm font-medium text-ink">
-              Branch
-              <input className={field} value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g. CSE" />
-            </label>
+            {programme === OTHER && (
+              <label className="block text-sm font-medium text-ink">
+                Branch
+                <input className={field} value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="e.g. ECE" />
+              </label>
+            )}
           </div>
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-2">
-          <Next onClick={() => setStep(1)}>Next</Next>
-          <Skip onClick={() => setStep(1)} />
+          <Next onClick={next}>Next</Next>
+          <Skip onClick={next} />
         </div>
       </Shell>
     );
   }
 
-  /* ── 2 · drives ────────────────────────────────────────────────────────── */
-  if (step === 1) {
+  /* ── this semester's courses ───────────────────────────────────────────── */
+  if (key === "courses" && semester !== null) {
     return (
-      <Shell step={1} steps={steps}>
+      <Shell step={at} steps={labels}>
+        <h1 className="text-title font-semibold text-ink">Which courses are you taking this semester?</h1>
+        <p className="mt-2 text-ink-soft">
+          Semester {semester}
+          {known ? ` of ${programmeLabel({ ...known, curriculum_year: null })}` : ""}. Each course you tick gets
+          its own practice on Today, and a mixed interview asks about what your courses have covered.
+        </p>
+        <div className="mt-6">
+          {curriculum.data ? (
+            <CoursePicker curriculum={curriculum.data} semester={semester} selected={courses} onChange={setCourses} />
+          ) : curriculum.isError ? (
+            <p role="alert" className="text-sm text-contested">
+              The course list didn't load: {(curriculum.error as Error).message}
+            </p>
+          ) : (
+            <SkeletonRows label="Loading your semester's courses" rows={5} />
+          )}
+        </div>
+        <div className="mt-7 flex flex-wrap items-center gap-2">
+          <Next onClick={next}>Next</Next>
+          <Skip onClick={next} />
+        </div>
+      </Shell>
+    );
+  }
+
+  /* ── drives ────────────────────────────────────────────────────────────── */
+  if (key === "drives") {
+    return (
+      <Shell step={at} steps={labels}>
         <h1 className="text-title font-semibold text-ink">Any drives coming up?</h1>
         <p className="mt-2 text-ink-soft">
           Add the companies you're sitting and the date, and Today counts down to the next one.
@@ -289,29 +438,29 @@ export function Welcome() {
         <div className="mt-6">
           <DrivePicker
             drives={drives}
-            onChange={(next) => {
-              setDrives(next);
+            onChange={(nextDrives) => {
+              setDrives(nextDrives);
               const seen = new Map(companies.map((c) => [c.company_id ?? c.name, c]));
-              for (const d of next) {
-                const key = d.company_id ?? d.label.split(" · ")[0]!;
-                if (!seen.has(key)) seen.set(key, { name: d.label.split(" · ")[0]!, company_id: d.company_id ?? null });
+              for (const d of nextDrives) {
+                const id = d.company_id ?? d.label.split(" · ")[0]!;
+                if (!seen.has(id)) seen.set(id, { name: d.label.split(" · ")[0]!, company_id: d.company_id ?? null });
               }
               setCompanies([...seen.values()]);
             }}
           />
         </div>
         <div className="mt-7 flex flex-wrap items-center gap-2">
-          <Next onClick={() => setStep(2)}>{drives.length ? "Next" : "No drives yet"}</Next>
-          <Skip onClick={() => setStep(2)} />
+          <Next onClick={next}>{drives.length ? "Next" : "No drives yet"}</Next>
+          <Skip onClick={next} />
         </div>
       </Shell>
     );
   }
 
-  /* ── 3 · rhythm ────────────────────────────────────────────────────────── */
-  if (step === 2) {
+  /* ── rhythm ────────────────────────────────────────────────────────────── */
+  if (key === "rhythm") {
     return (
-      <Shell step={2} steps={steps}>
+      <Shell step={at} steps={labels}>
         <h1 className="text-title font-semibold text-ink">How often will you practise?</h1>
         <p className="mt-2 text-ink-soft">A goal you set yourself. Today shows how the week is going.</p>
         <div className="mt-6 grid grid-cols-4 gap-2">
@@ -352,7 +501,7 @@ export function Welcome() {
         )}
         <div className="mt-8 flex flex-wrap items-center gap-2">
           {askConsent ? (
-            <Next onClick={() => setStep(3)}>Next</Next>
+            <Next onClick={next}>Next</Next>
           ) : (
             <Next onClick={saveAll} disabled={save.isPending || profile.isLoading}>
               {save.isPending ? "Saving…" : "Finish"}
@@ -363,9 +512,9 @@ export function Welcome() {
     );
   }
 
-  /* ── 4 · save your progress — asked where it applies ───────────────────── */
+  /* ── save your progress — asked where it applies ───────────────────────── */
   return (
-    <Shell step={3} steps={steps}>
+    <Shell step={at} steps={labels}>
       <h1 className="text-title font-semibold text-ink">Save your progress?</h1>
       <p className="mt-2 text-ink-soft">
         So every interview builds your skill graph — and the next one knows what to ask.

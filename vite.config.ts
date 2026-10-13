@@ -73,6 +73,8 @@ const OWNER: Record<string, Mod> = {
   performance: "m02",
   candidates: "m04",
   concepts: "m04",
+  // The programmes and courses sign-in offers (2026-10-13).
+  curricula: "m04",
   "skill-graph": "m04",
   bank: "m05",
   ontology: "m05",
