@@ -79,6 +79,8 @@ const OWNER: Record<string, Mod> = {
   bank: "m05",
   ontology: "m05",
   questions: "m05",
+  // The human review queue for drafted questions (FR-5.6, 2026-10-14).
+  review: "m05",
   sessions: "m05",
   /*
     M06's nouns are `interviews`, not `sessions`: M05 already owns that word

@@ -34,7 +34,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { MODULES, candidateIdOf, isStaff, useSession } from "@ai/core";
+import { MODULES, candidateIdOf, canReview, isStaff, useSession } from "@ai/core";
 import { m01Routes } from "@ai/m01";
 import { m02Routes } from "@ai/m02";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
@@ -45,6 +45,7 @@ import { m15Routes } from "@ai/m15";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Answers } from "./pages/Answers";
+import { QuestionReview } from "./pages/QuestionReview";
 import { Help } from "./pages/Help";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
@@ -121,8 +122,10 @@ const STAFF_TABS: FrameNavItem[] = [
   for everyone: a student who follows a link gets the module's sentence about
   what the page is, and the backend's 403, rather than a 404.
 */
+const QUESTION_REVIEW_NAV: FrameNavItem = { to: "/questions/review", label: "Question review", icon: "listChecks" };
 const PLACEMENT_NAV: FrameNavItem[] = [
   { to: "/review", label: "Review queue", icon: "shield" },
+  QUESTION_REVIEW_NAV,
   { to: "/ops", label: "Operations", icon: "zap" },
   { to: "/score", label: "Evaluation bench", icon: "scales" },
 ];
@@ -167,6 +170,18 @@ function StudentOnlyNotice() {
       <p className="mt-3 text-ink-soft">
         Staff see the cohort's counts, never one student's record. Your queues are on Today.
       </p>
+    </div>
+  );
+}
+
+/** The question-review screen: staff and the dedicated reviewer role. */
+function ReviewerOnly({ children }: { children: ReactNode }) {
+  const session = useSession();
+  if (canReview(session)) return <>{children}</>;
+  return (
+    <div className="mx-auto max-w-xl py-16">
+      <h1 className="text-title font-semibold text-ink">This page is for question reviewers.</h1>
+      <p className="mt-3 text-ink-soft">Everything you need is in the menu.</p>
     </div>
   );
 }
@@ -315,8 +330,10 @@ function App() {
     );
   }
 
-  const staffRole = isStaff(session) || session.role === "admin";
+  const reviewerOnly = session.role === "reviewer";
+  const staffRole = isStaff(session) || session.role === "admin" || reviewerOnly;
   const staff = [
+    ...(reviewerOnly ? [QUESTION_REVIEW_NAV] : []),
     ...(isStaff(session) ? PLACEMENT_NAV : []),
     ...(session.role === "admin" ? ADMIN_NAV : []),
   ];
@@ -329,8 +346,9 @@ function App() {
     ? [
         { label: "", items: [TODAY] },
         { label: "Staff", items: staff },
-        { label: "Browse", items: [COMPANIES, JD] },
-        { label: "Platform", items: PLATFORM_NAV },
+        ...(reviewerOnly
+          ? []
+          : [{ label: "Browse", items: [COMPANIES, JD] }, { label: "Platform", items: PLATFORM_NAV }]),
       ]
     : STUDENT_NAV;
 
@@ -349,6 +367,7 @@ function App() {
         <Route path="/answers" element={<Answers />} />
         <Route path="/help" element={<Help />} />
         <Route path="/system" element={<StaffOnly><System /></StaffOnly>} />
+        <Route path="/questions/review" element={<ReviewerOnly><QuestionReview /></ReviewerOnly>} />
         {/* M15's "Practise this now" hands a topic to /practice; here that is
             M06's focused interview on it (pages/Practice.tsx). */}
         <Route path="/practice" element={<Practice />} />

@@ -36,11 +36,13 @@
  *   · Staff land on their own queues with counts, not on a tour of student
  *     modules.
  */
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
   ANSWER_BAND_LABEL,
+  api,
   Icon,
   STATE_LABEL,
   SkeletonCards,
@@ -75,6 +77,7 @@ import { useDisputeQueue, useOutbox } from "@ai/m13";
 import { useClaimReports, useReviewQueue } from "@ai/m15";
 
 import { firstName } from "../lib/account";
+import { useTrackTitles } from "../lib/tracks";
 import { coversLine, practisable, practiseCourseLink } from "../lib/courses";
 import { countdownLabel, daysUntil, downloadIcs, driveIcs, milestones, nextDrive } from "../lib/goals";
 import { JOURNEY, type Stage } from "../lib/journey";
@@ -1056,9 +1059,74 @@ function AdminQueues() {
   );
 }
 
+interface ReviewProgress {
+  tracks: Record<string, { approved: number; pending: number; rejected: number }>;
+  totals: { approved: number; pending: number; rejected: number };
+}
+
+/** M05's question-review counts (FR-5.6), for whoever may review. */
+function useReviewProgress() {
+  return useQuery({
+    queryKey: ["m05-review", "progress"],
+    queryFn: () => api.get<ReviewProgress>("/v1/review/progress"),
+    retry: 0,
+  });
+}
+
+/**
+ * A reviewer's Today (2026-10-14): faculty and seniors who review drafted
+ * questions land on that work, not on the student tour of the platform. The
+ * queue first, then how far each track has got.
+ */
+function ReviewerHome() {
+  const progress = useReviewProgress();
+  const trackTitle = useTrackTitles();
+  const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+  const tracks = Object.entries(progress.data?.tracks ?? {}).sort((a, b) => b[1].pending - a[1].pending);
+  return (
+    <>
+      <header>
+        <p className="text-sm text-ink-faint">{today}</p>
+        <h1 className="mt-1 text-title font-semibold text-ink">{greeting()}.</h1>
+        <p className="mt-2 max-w-2xl text-ink-soft">
+          Each question you approve starts counting for students' scores and skill graphs.
+        </p>
+      </header>
+      <div className="stagger mt-7 grid items-start gap-4 md:grid-cols-2">
+        <QueueCard
+          icon="listChecks"
+          count={progress.data?.totals.pending ?? null}
+          label="drafted questions to review"
+          sub="Read the question and its answer key, then approve, edit or reject it."
+          to="/questions/review"
+          loading={progress.isLoading}
+        />
+        <section className="panel p-5">
+          <CardLabel icon="chart">By track</CardLabel>
+          {progress.isError ? (
+            <p className="mt-3 text-sm text-ink-soft">The question bank did not answer.</p>
+          ) : (
+            <ul className="mt-3 space-y-1.5 text-sm">
+              {tracks.map(([name, row]) => (
+                <li key={name} className="flex items-baseline justify-between gap-3">
+                  <span className="text-ink">{trackTitle(name)}</span>
+                  <span className="text-xs text-ink-faint" data-numeric>
+                    {row.approved} approved · {row.pending} to review
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
+
 function StaffHome({ admin }: { admin: boolean }) {
   const reports = useReviewQueue();
   const claims = useClaimReports(false);
+  const questions = useReviewProgress();
   const cohort = useCohortStats();
   const today = new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
   return (
@@ -1085,6 +1153,14 @@ function StaffHome({ admin }: { admin: boolean }) {
           sub="Facts on company pages that students say are wrong."
           to="/review"
           loading={claims.isLoading}
+        />
+        <QueueCard
+          icon="listChecks"
+          count={questions.data?.totals.pending ?? null}
+          label="drafted questions to review"
+          sub="A question counts for scoring only after a person approves it."
+          to="/questions/review"
+          loading={questions.isLoading}
         />
         {admin && <AdminQueues />}
       </div>
@@ -1209,6 +1285,7 @@ export function Home() {
 
   if (!candidate) {
     if (isStaff(session) || session?.role === "admin") return <StaffHome admin={session?.role === "admin"} />;
+    if (session?.role === "reviewer") return <ReviewerHome />;
     return (
       <header>
         <p className="text-sm text-ink-faint">{today}</p>
