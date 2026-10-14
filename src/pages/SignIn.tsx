@@ -49,6 +49,12 @@ const STAFF: StaffChoice[] = [
     shows: "The review queue and company curation. Cohort figures, never one student's record.",
   },
   {
+    session: () => ({ role: "reviewer", subject: "reviewer-1", name: "Question reviewer" }),
+    title: "Question reviewer",
+    icon: "shield",
+    shows: "Drafted questions awaiting a decision. Questions only, never a student's record.",
+  },
+  {
     session: () => ({ role: "admin", subject: "admin-1", name: "Operations" }),
     title: "Administrator",
     icon: "shield",
