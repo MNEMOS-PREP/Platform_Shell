@@ -31,7 +31,15 @@
  */
 import { Component, StrictMode, useEffect, useMemo, useRef, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  RouterProvider,
+  Routes,
+  ScrollRestoration,
+  createBrowserRouter,
+  useLocation,
+} from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { MODULES, candidateIdOf, canReview, isStaff, useSession } from "@ai/core";
@@ -398,12 +406,46 @@ function App() {
   );
 }
 
+/*
+  A data router around the whole app (2026-10-16), for two things a
+  BrowserRouter cannot do:
+
+  · Page transitions. A navigation is a view transition: the old page fades
+    as the new one rises, and the rail's highlight slides (theme.css). Links
+    in nineteen modules do not ask for one, so the router's own `navigate`
+    asks for every navigation; a caller that says `viewTransition: false`
+    still gets none.
+  · Scroll. A page opened from halfway down another opened halfway down too;
+    ScrollRestoration starts a new page at the top and puts Back where it was.
+
+  One splat route renders the App as it was, so every module's <Routes>
+  mounts underneath unchanged.
+*/
+const router = createBrowserRouter([
+  {
+    path: "*",
+    element: (
+      <>
+        <App />
+        <ScrollRestoration />
+      </>
+    ),
+  },
+]);
+type NavigateOptions = Parameters<typeof router.navigate>[1] & { viewTransition?: boolean };
+const navigateWithoutTransition = router.navigate.bind(router);
+router.navigate = ((to: Parameters<typeof router.navigate>[0], opts?: NavigateOptions) =>
+  typeof to === "number"
+    ? navigateWithoutTransition(to)
+    : navigateWithoutTransition(to, {
+        ...opts,
+        viewTransition: opts?.viewTransition ?? true,
+      })) as typeof router.navigate;
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,
 );

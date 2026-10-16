@@ -145,7 +145,7 @@ export function CommandPalette({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/45 px-4 pt-[12vh] backdrop-blur-[2px]"
+      className="scrim-in fixed inset-0 z-50 flex items-start justify-center bg-black/45 px-4 pt-[12vh] backdrop-blur-[2px]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -154,7 +154,7 @@ export function CommandPalette({
         role="dialog"
         aria-modal="true"
         aria-label="Search the platform"
-        className="page-in w-full max-w-[40rem] overflow-hidden rounded-2xl border border-line-strong bg-surface shadow-raised"
+        className="dialog-in w-full max-w-[40rem] overflow-hidden rounded-2xl border border-line-strong bg-surface shadow-raised"
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") {
             event.preventDefault();

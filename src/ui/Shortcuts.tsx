@@ -85,12 +85,12 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="scrim-in fixed inset-0 z-50 grid place-items-center bg-black/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="shortcuts-title"
-        className="panel w-full max-w-sm p-5 shadow-raised"
+        className="dialog-in panel w-full max-w-sm p-5 shadow-raised"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center gap-2">

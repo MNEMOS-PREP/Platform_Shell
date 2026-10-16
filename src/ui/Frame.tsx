@@ -49,6 +49,7 @@ import { currentStreak, practiceDays } from "../lib/practice";
 import { toggleTheme, useTheme } from "../lib/theme";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { ShortcutsDialog, useShortcuts } from "./Shortcuts";
+import { TopProgress } from "./TopProgress";
 
 export interface FrameNavItem {
   to: string;
@@ -230,7 +231,7 @@ function AccountCard() {
   );
 }
 
-function RailLink({ item, pathname }: { item: FrameNavItem; pathname: string }) {
+function RailLink({ item, pathname, pill }: { item: FrameNavItem; pathname: string; pill: boolean }) {
   const active = isActive(item, pathname);
   return (
     <NavLink
@@ -239,11 +240,20 @@ function RailLink({ item, pathname }: { item: FrameNavItem; pathname: string }) 
       className={[
         "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm",
         active
-          ? "bg-rail-active font-medium text-rail-ink"
+          ? `${pill ? "" : "bg-rail-active "}font-medium text-rail-ink`
           : "text-rail-ink-soft hover:bg-rail-hover hover:text-rail-ink",
       ].join(" ")}
     >
-      {active && (
+      {/* The highlight is its own element, named for the view transition
+          (theme.css `rail-pill`), so on a navigation it slides from the item
+          left to the item chosen instead of blinking off and on (2026-10-16).
+          The icon and label sit above it. */}
+      {active && pill && (
+        <span aria-hidden className="rail-pill absolute inset-0 rounded-lg bg-rail-active">
+          <span className="bg-brand-gradient absolute top-1.5 bottom-1.5 left-0 w-[3px] rounded-full" />
+        </span>
+      )}
+      {active && !pill && (
         <span
           aria-hidden
           className="bg-brand-gradient absolute top-1.5 bottom-1.5 left-0 w-[3px] rounded-full"
@@ -252,9 +262,9 @@ function RailLink({ item, pathname }: { item: FrameNavItem; pathname: string }) 
       <Icon
         name={item.icon}
         size={17}
-        className={active ? "text-rail-ink" : "text-rail-ink-soft group-hover:text-rail-ink"}
+        className={`relative ${active ? "text-rail-ink" : "text-rail-ink-soft group-hover:text-rail-ink"}`}
       />
-      <span className="truncate">{item.label}</span>
+      <span className="relative truncate">{item.label}</span>
     </NavLink>
   );
 }
@@ -310,6 +320,14 @@ export function Frame({
     OFF_MENU.find((item) => isActive(item, location.pathname));
   const displayName = useDisplayName(session);
 
+  // The tab says where you are (2026-10-16). Every page was "AI Interviewer"
+  // in the tab strip, in Back's history menu, and in what a screen reader
+  // announces on a navigation. A company page publishes its company's name.
+  const where = rail?.context?.title ?? current?.label;
+  useEffect(() => {
+    document.title = where ? `${where} · AI Interviewer` : "AI Interviewer";
+  }, [where]);
+
   // Cmd+K / Ctrl+K anywhere; "/" when not already typing.
   const [palette, setPalette] = useState(false);
   useEffect(() => {
@@ -344,6 +362,19 @@ export function Frame({
       icon: item.icon,
       run: () => navigate(item.to),
     })),
+    // The current section's own pages — what M15 publishes to the rail, here
+    // too (2026-10-16). M15 kept a palette of its own inside the shell for
+    // them, and Ctrl+K on a company page opened both, one over the other; it
+    // stands down when hosted now, and nothing it offered is lost.
+    ...sections
+      .filter((section) => !section.disabledReason)
+      .map((section) => ({
+        id: `section:${section.to}`,
+        group: rail?.context?.title ? `Go to · ${rail.context.title}` : "This section",
+        label: section.label,
+        icon: "building" as const,
+        run: () => navigate(section.to),
+      })),
     {
       id: "do:mock",
       group: "Actions",
@@ -428,6 +459,7 @@ export function Frame({
 
   return (
     <HostShellContext.Provider value={host}>
+      <TopProgress />
       <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
         {/* ---------- rail ---------- */}
         <aside className="sticky top-0 hidden h-dvh flex-col border-r border-rail-line bg-rail lg:flex">
@@ -445,7 +477,12 @@ export function Frame({
                 )}
                 <div className="space-y-0.5">
                   {group.items.map((item) => (
-                    <RailLink key={item.to} item={item} pathname={location.pathname} />
+                    <RailLink
+                      key={item.to}
+                      item={item}
+                      pathname={location.pathname}
+                      pill={item.to === current?.to}
+                    />
                   ))}
                 </div>
               </div>
@@ -561,7 +598,8 @@ export function Frame({
 
           <main
             key={location.pathname}
-            className="page-in min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-5 md:px-10 md:pt-10 lg:pb-10 xl:px-14"
+            // `vt-page`: what a navigation cross-fades (theme.css, main.tsx).
+            className="page-in vt-page min-w-0 flex-1 px-4 pt-6 pb-28 sm:px-5 md:px-10 md:pt-10 lg:pb-10 xl:px-14"
           >
             {/* Wide, but not edge-to-edge on an ultrawide - past about 1500px a
                 row of cards stops being scannable in one sweep. */}
@@ -605,12 +643,12 @@ export function Frame({
         </div>
       </nav>
       {more && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMore(false)}>
+        <div className="scrim-in fixed inset-0 z-50 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMore(false)}>
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Everything else"
-            className="absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="drawer-up absolute inset-x-0 bottom-0 max-h-[80dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-strong" aria-hidden />
