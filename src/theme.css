@@ -315,6 +315,34 @@
     padding-inline-end: 2.1rem !important;
   }
 
+  /* What can be clicked shows the hand. Tailwind v4's preflight stopped
+     doing this for buttons, and about ten buttons across every module put it
+     back by hand, so the rest of them pointed with the arrow. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="option"],
+  summary,
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  label:has(> input[type="checkbox"]:not(:disabled)),
+  label:has(> input[type="radio"]:not(:disabled)) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Keyboard focus is a brand ring, one shape everywhere. The browser's
+     default was a different colour on every surface and vanished on the
+     gradient buttons. `:where` keeps it below a module's own focus utility. */
+  :where(a, button, summary, [role="button"], [role="tab"], [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
   /* Fields focus with a soft brand ring rather than the browser's outline. */
   input:not([type="checkbox"]):not([type="radio"]):focus-visible,
   textarea:focus-visible,
@@ -476,6 +504,29 @@
     from {
       opacity: 0;
       transform: translateY(8px);
+    }
+  }
+  /* Light and dark cross-fade (lib/theme.ts), where they used to snap. The
+     whole window is one picture for it: the page and the pill drop their
+     names, so nothing slides while the colours change. */
+  :root.theme-fading .vt-page,
+  :root.theme-fading .rail-pill {
+    view-transition-name: none;
+  }
+  :root.theme-fading::view-transition-old(root) {
+    animation: vt-fade-out 300ms var(--ease-out-soft) both;
+  }
+  :root.theme-fading::view-transition-new(root) {
+    animation: vt-fade-in 300ms var(--ease-out-soft) both;
+  }
+  @keyframes vt-fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes vt-fade-in {
+    from {
+      opacity: 0;
     }
   }
   @media (prefers-reduced-motion: reduce) {

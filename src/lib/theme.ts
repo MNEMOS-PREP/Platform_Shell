@@ -43,8 +43,20 @@ export function setTheme(theme: Theme): void {
   listeners.forEach((listener) => listener());
 }
 
+/** The toggle cross-fades the window (theme.css `theme-fading`) where it can. */
 export function toggleTheme(): void {
-  setTheme(current === "dark" ? "light" : "dark");
+  const next: Theme = current === "dark" ? "light" : "dark";
+  const root = document.documentElement;
+  if (
+    typeof document.startViewTransition !== "function" ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    setTheme(next);
+    return;
+  }
+  root.classList.add("theme-fading");
+  const clear = () => root.classList.remove("theme-fading");
+  document.startViewTransition(() => setTheme(next)).finished.then(clear, clear);
 }
 
 /** Before the first paint: a `?theme=` link wins, then the saved choice. */

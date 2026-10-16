@@ -336,11 +336,23 @@ function FocusCard({
   ];
   const required = steps.filter((s) => !s.optional);
   const doneCount = steps.filter((s) => s.done).length;
-  const loading = resumes.isLoading;
+  // Every input to the choice, not only the resumes: the skill graph's
+  // suggestion arriving late swapped one focus for another in front of the
+  // student. Until then, the card's shape in skeleton rather than a blank box.
+  const loading = resumes.isLoading || bottlenecks.isLoading || mastery.isLoading;
 
   return (
     <section className={`panel relative overflow-hidden p-7 ${className}`}>
       <div aria-hidden className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-brand opacity-[0.16] blur-3xl" />
+      {loading && (
+        <div aria-hidden className="absolute inset-7">
+          <div className="skeleton h-6 w-28 rounded-full" />
+          <div className="skeleton mt-5 h-8 w-3/5 rounded-lg" />
+          <div className="skeleton mt-4 h-4 w-4/5 rounded" />
+          <div className="skeleton mt-2 h-4 w-2/3 rounded" />
+          <div className="skeleton mt-7 h-10 w-44 rounded-lg" />
+        </div>
+      )}
       <div className={`relative ${loading ? "opacity-0" : "page-in"}`}>
         <p className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-brand-soft px-2.5 py-1 text-xs font-medium text-brand">
           <Icon name="sparkles" size={13} />
@@ -507,12 +519,25 @@ function HabitCard({
         </div>
         <div className="relative grid place-items-center">
           <Ring value={week} of={goal} />
+          {/* Past the goal it says so; "4/3" read as a counting bug. */}
           <span className="absolute text-center leading-tight">
-            <span className="block text-lg font-semibold text-ink" data-numeric>
-              {week}
-              <span className="text-ink-faint">/{goal}</span>
-            </span>
-            <span className="block text-[0.625rem] text-ink-faint">this week</span>
+            {week >= goal ? (
+              <>
+                <span className="flex items-center justify-center gap-0.5 text-lg font-semibold text-ink" data-numeric>
+                  {week}
+                  <Icon name="check" size={14} className="text-confirmed" />
+                </span>
+                <span className="block text-[0.625rem] text-ink-faint">goal met</span>
+              </>
+            ) : (
+              <>
+                <span className="block text-lg font-semibold text-ink" data-numeric>
+                  {week}
+                  <span className="text-ink-faint">/{goal}</span>
+                </span>
+                <span className="block text-[0.625rem] text-ink-faint">this week</span>
+              </>
+            )}
           </span>
         </div>
       </div>

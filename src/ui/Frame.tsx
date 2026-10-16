@@ -65,8 +65,15 @@ export interface FrameNavGroup {
 }
 
 /** Cmd on Apple keyboards, Ctrl elsewhere - the hint should be the key you press. */
-const MOD =
+export const MOD =
   typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "\u2318" : "Ctrl ";
+
+const OPEN_PALETTE = "ai:open-palette";
+
+/** Opens the frame's search from a page (the not-found page's "Search"). */
+export function openPalette(): void {
+  window.dispatchEvent(new Event(OPEN_PALETTE));
+}
 
 /** Screens reached from the account menu rather than the rail: still named in the top bar. */
 const OFF_MENU: FrameNavItem[] = [
@@ -343,8 +350,13 @@ export function Frame({
         setPalette(true);
       }
     };
+    const onOpen = () => setPalette(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_PALETTE, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_PALETTE, onOpen);
+    };
   }, []);
 
   const navigate = useNavigate();

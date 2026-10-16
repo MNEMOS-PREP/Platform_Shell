@@ -1,9 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Interviewer</title>
+    <meta
+      name="description"
+      content="Placement prep: mock interviews that adapt to your resume, your courses and the company you are applying to."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#07080b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f9fafc" media="(prefers-color-scheme: light)" />
+    <!-- The theme before the first paint. The stylesheet arrives in <head>,
+         but lib/theme.ts runs with the module script, after the page has
+         painted once in the light tokens. Same rule: ?theme= wins, then the
+         saved choice, dark by default. -->
+    <script>
+      try {
+        var asked = new URLSearchParams(location.search).get("theme");
+        document.documentElement.dataset.theme =
+          asked === "light" || asked === "dark"
+            ? asked
+            : localStorage.getItem("ai.theme") === "light"
+              ? "light"
+              : "dark";
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

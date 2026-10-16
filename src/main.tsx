@@ -39,6 +39,7 @@ import {
   ScrollRestoration,
   createBrowserRouter,
   useLocation,
+  useRouteError,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -58,6 +59,7 @@ import { Help } from "./pages/Help";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
 import { NotBuilt } from "./pages/NotBuilt";
+import { NotFound } from "./pages/NotFound";
 import { Practice } from "./pages/Practice";
 import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
@@ -251,11 +253,55 @@ class ScreenBoundary extends Component<{ children: ReactNode }, { error: Error |
 }
 
 /**
+ * The last line of defence: an error outside every screen (the frame itself,
+ * the session hooks) used to reach React Router's developer page — "Hey
+ * developer", a stack trace — in front of a student. This one stands without
+ * the frame, since the frame may be what failed.
+ */
+function AppCrashed() {
+  const error = useRouteError();
+  useEffect(() => console.error("The app failed:", error), [error]);
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return (
+    <div className="grid min-h-dvh place-items-center px-4">
+      <div className="panel w-full max-w-lg p-8">
+        <p className="rule-label">Something went wrong</p>
+        <h1 className="mt-2 text-title font-semibold text-ink">The platform hit an error.</h1>
+        <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+          Nothing you saved is lost. Reload to carry on; if it happens again, the message below
+          is what to send to the placement cell.
+        </p>
+        {message && (
+          <pre className="mt-5 overflow-x-auto rounded-lg bg-surface-sunken p-3 font-mono text-xs text-ink-soft">
+            {message}
+          </pre>
+        )}
+        <div className="mt-6 flex gap-2">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="bg-brand-gradient rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-glow"
+          >
+            Reload
+          </button>
+          <a
+            href="/"
+            className="rounded-lg border border-line bg-surface px-4 py-2 text-sm text-ink hover:border-line-strong"
+          >
+            Go to Today
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Modules with no UI yet get a named placeholder rather than a dead link.
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M13", "M15"]);
+const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M15"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
@@ -394,10 +440,10 @@ function App() {
         {m15Routes}
 
         {PLACEHOLDERS.map((m) => (
-          <Route key={m.id} path={m.path} element={<NotBuilt id={m.id} name={m.name} />} />
+          <Route key={m.id} path={m.path} element={<NotBuilt name={m.name} blurb={m.blurb} />} />
         ))}
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       )}
       </ScreenBoundary>
@@ -430,8 +476,27 @@ const router = createBrowserRouter([
         <ScrollRestoration />
       </>
     ),
+    errorElement: <AppCrashed />,
   },
 ]);
+/*
+  Two navigations close together (Start the interview → the room, which then
+  settles its own address) skip the first transition, and the browser rejects
+  that transition's promise, which React Router never awaits. A page that
+  takes over four seconds to render times its transition out the same way.
+  Either way the navigation completes and only the animation is dropped, so
+  these two are the only rejections silenced here.
+*/
+window.addEventListener("unhandledrejection", (event) => {
+  const reason = event.reason;
+  if (
+    reason instanceof DOMException &&
+    (reason.name === "AbortError" || reason.name === "TimeoutError") &&
+    /transition/i.test(reason.message)
+  ) {
+    event.preventDefault();
+  }
+});
 type NavigateOptions = Parameters<typeof router.navigate>[1] & { viewTransition?: boolean };
 const navigateWithoutTransition = router.navigate.bind(router);
 router.navigate = ((to: Parameters<typeof router.navigate>[0], opts?: NavigateOptions) =>
