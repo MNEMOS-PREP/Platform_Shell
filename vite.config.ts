@@ -35,6 +35,8 @@ const API = {
   m06: 8106,
   m11: 8111,
   m13: 8113,
+  // GD Arena: framed by /gd, not proxied by noun; this gives /sys/m14/health.
+  m14: 8114,
   m15: 8115,
 } as const;
 type Mod = keyof typeof API;

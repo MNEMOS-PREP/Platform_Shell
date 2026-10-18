@@ -55,6 +55,7 @@ import { m15Routes } from "@ai/m15";
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Answers } from "./pages/Answers";
 import { QuestionReview } from "./pages/QuestionReview";
+import { GroupDiscussion } from "./pages/GroupDiscussion";
 import { Help } from "./pages/Help";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
@@ -90,7 +91,12 @@ const JD: FrameNavItem = { to: "/jd", label: "Job description", icon: "listCheck
 const STUDENT_NAV: FrameNavGroup[] = [
   {
     label: "",
-    items: [TODAY, { to: "/mock", label: "Mock interview", icon: "mic" }],
+    items: [
+      TODAY,
+      { to: "/mock", label: "Mock interview", icon: "mic" },
+      // M14, framed from its own app (pages/GroupDiscussion.tsx).
+      { to: "/gd", label: "Group discussion", icon: "users" },
+    ],
   },
   {
     label: "Progress",
@@ -301,7 +307,7 @@ function AppCrashed() {
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M15"]);
+const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "M15"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
@@ -425,6 +431,10 @@ function App() {
         {/* M15's "Practise this now" hands a topic to /practice; here that is
             M06's focused interview on it (pages/Practice.tsx). */}
         <Route path="/practice" element={<Practice />} />
+        {/* M14 is a Next.js app with its own backend: framed, not mounted.
+            /m14 is the registry's path for it, kept as a way in. */}
+        <Route path="/gd" element={<GroupDiscussion />} />
+        <Route path="/m14" element={<Navigate to="/gd" replace />} />
 
         {/* Every module mounts whole. M01 and M02 used to claim the index, so
             only two of their screens were mounted by name and every other page

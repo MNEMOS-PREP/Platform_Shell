@@ -87,6 +87,7 @@ are handled:
 | `/jd`, `/jds/:id` | M02 | |
 | `/score`, `/turns/:id`, `/rubrics`, `/calibration`, `/disputes`, `/raters`, `/outbox` | M13 | mounted whole |
 | `/companies`, `/companies/:id/*` | M15 | mounted whole |
+| `/gd` | M14 | framed from GD's own web app (:5214) — a Next.js app with its own backend, so it cannot mount from source |
 | `/system` | shell | Every module's dependencies, live |
 | `/m03`, `/m06`, `/m07` … | — | Named placeholders, not dead links |
 
@@ -112,6 +113,7 @@ projects/
   resume-ingestion/        M01
   jd-parser-coverage/      M02
   Company_Guider/          M15
+  GD_Arena/                M14 (optional: /gd says it is not open without it)
 ```
 
 `npm install` once, here. The modules keep their own dependencies.
