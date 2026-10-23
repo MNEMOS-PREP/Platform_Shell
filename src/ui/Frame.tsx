@@ -88,6 +88,15 @@ function isActive(item: FrameNavItem, pathname: string): boolean {
     (item.match ? pathname.startsWith(item.match) : false);
 }
 
+/** The item a page is under: the most specific match. With the question
+    library at /mock/library, the prefix alone lit "Mock interview" too and
+    titled the tab after it (2026-10-23). */
+function activeItem(items: FrameNavItem[], pathname: string): FrameNavItem | undefined {
+  return items
+    .filter((item) => isActive(item, pathname))
+    .sort((a, b) => b.to.length - a.to.length)[0];
+}
+
 /** The name to show: what the student told us (M04's profile), else the session's. */
 function useDisplayName(session: Session | null): string | undefined {
   const profile = useProfile(candidateIdOf(session));
@@ -238,8 +247,7 @@ function AccountCard() {
   );
 }
 
-function RailLink({ item, pathname, pill }: { item: FrameNavItem; pathname: string; pill: boolean }) {
-  const active = isActive(item, pathname);
+function RailLink({ item, active, pill }: { item: FrameNavItem; active: boolean; pill: boolean }) {
   return (
     <NavLink
       to={item.to}
@@ -322,9 +330,7 @@ export function Frame({
   // a second "Home" that meant Today here (2026-10-13). Its own pages stay.
   const platformPaths = new Set(["/", ...items.map((item) => item.to)]);
   const sections = (rail?.sections ?? []).filter((section) => !platformPaths.has(section.to));
-  const current =
-    items.find((item) => isActive(item, location.pathname)) ??
-    OFF_MENU.find((item) => isActive(item, location.pathname));
+  const current = activeItem(items, location.pathname) ?? activeItem(OFF_MENU, location.pathname);
   const displayName = useDisplayName(session);
 
   // The tab says where you are (2026-10-16). Every page was "AI Interviewer"
@@ -492,7 +498,7 @@ export function Frame({
                     <RailLink
                       key={item.to}
                       item={item}
-                      pathname={location.pathname}
+                      active={item.to === current?.to}
                       pill={item.to === current?.to}
                     />
                   ))}
@@ -674,7 +680,7 @@ export function Frame({
                     key={item.to}
                     to={item.to}
                     className={`flex h-11 items-center gap-3 rounded-lg px-2 text-sm ${
-                      isActive(item, location.pathname) ? "bg-brand-soft text-brand" : "text-ink"
+                      item.to === current?.to ? "bg-brand-soft text-brand" : "text-ink"
                     }`}
                   >
                     <Icon name={item.icon} size={17} />

@@ -98,6 +98,9 @@ const STUDENT_NAV: FrameNavGroup[] = [
       // A student's "evaluation" is their own marked answers (2026-10-04).
       // M13's bench, which this used to open, is a staff tool now.
       { to: "/answers", label: "My answers", icon: "target", match: "/turns" },
+      // M06's library (2026-10-23): questions starred, and the ones an
+      // interview marked worth another go — practised again from there.
+      { to: "/mock/library", label: "Question library", icon: "star" },
       { to: "/skills", label: "Skill graph", icon: "graph" },
       { to: "/history", label: "History", icon: "clock" },
     ],
