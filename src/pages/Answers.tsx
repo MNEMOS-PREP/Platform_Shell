@@ -5,34 +5,20 @@
  * dropdown, an ensemble picker and regression cases. That is a staff tool and
  * now sits in the Staff menu. A student's evaluation is their own marked
  * answers, so this page lists them — newest interview first, each question
- * with its band (Strong / Partly there / Not yet, from the key points it
- * reached), a link to how it was marked (M13's evidence page) and a way to
- * practise that topic again. Read from M06's notes, which already carry all
- * three; nothing is re-scored here.
+ * with its status, a link to how it was marked (M13's evidence page) and a
+ * way to practise that topic again. Read from M06's notes, which already
+ * carry all three; nothing is re-scored here.
+ *
+ * 2026-10-24: the status, not the band. The band (Strong / Partly there /
+ * Not yet) was M13's key-point share, on scored questions only, and could
+ * say "Strong" of an answer the notes call Incorrect. The status is the
+ * interview's judgement of the whole conversation, the same badge the notes
+ * show (`StatusBadge`), so the two pages cannot disagree.
  */
 import { Link } from "react-router-dom";
 
-import {
-  ANSWER_BAND_LABEL,
-  Icon,
-  PageHeader,
-  SkeletonRows,
-  relativeDays,
-  type AnswerBand,
-} from "@ai/core";
-import { bandOf, topicName, useHistory, useReport, type SessionSummary } from "@ai/m06";
-
-/** Colour as a dot and a tint, the word in ink (contrast in both themes). */
-const BAND_STYLE: Record<AnswerBand, string> = {
-  strong: "border-mastery-strong/50 bg-mastery-strong/12",
-  partly: "border-mastery-ok/50 bg-mastery-ok/12",
-  not_yet: "border-mastery-weak/50 bg-mastery-weak/12",
-};
-const BAND_DOT: Record<AnswerBand, string> = {
-  strong: "bg-mastery-strong",
-  partly: "bg-mastery-ok",
-  not_yet: "bg-mastery-weak",
-};
+import { Icon, PageHeader, SkeletonRows, relativeDays } from "@ai/core";
+import { StatusBadge, topicName, useHistory, useReport, type SessionSummary } from "@ai/m06";
 
 function SessionAnswers({ s }: { s: SessionSummary }) {
   const report = useReport(s.id);
@@ -56,7 +42,6 @@ function SessionAnswers({ s }: { s: SessionSummary }) {
       ) : (
         <ul className="divide-y divide-line">
           {questions.map((q, i) => {
-            const band = bandOf(q);
             const name = topicName(q);
             return (
               <li key={i} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5">
@@ -64,17 +49,10 @@ function SessionAnswers({ s }: { s: SessionSummary }) {
                   <span className="line-clamp-2 text-sm text-ink">{q.question}</span>
                   {name && <span className="mt-0.5 block text-xs text-ink-faint capitalize">{name}</span>}
                 </span>
-                {band ? (
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold text-ink ${BAND_STYLE[band]}`}
-                  >
-                    <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${BAND_DOT[band]}`} />
-                    {ANSWER_BAND_LABEL[band]}
-                  </span>
+                {q.status ? (
+                  <StatusBadge status={q.status} label={q.status_label} />
                 ) : (
-                  <span className="text-xs text-ink-faint">
-                    {q.scored ? "Being marked" : "Not marked"}
-                  </span>
+                  <span className="text-xs text-ink-faint">Not marked</span>
                 )}
                 <span className="flex items-center gap-1">
                   {q.turn_id && q.feedback.length > 0 && (
@@ -113,9 +91,9 @@ export function Answers() {
         subtitle="Every question you've answered, how it went, and how it was marked."
         how={
           <p>
-            The band is the share of a strong answer's key points your answer reached: Strong is
-            three quarters or more, Partly there is at least two in five. Numerical scores stay
-            hidden until they agree with human markers.
+            Each answer's status is the interview's judgement of the whole conversation on that
+            question — correct, partly correct, too vague, incorrect or not answered — the same one
+            your notes show. Numerical scores stay hidden until they agree with human markers.
           </p>
         }
       />
