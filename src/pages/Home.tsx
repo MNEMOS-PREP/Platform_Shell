@@ -41,7 +41,6 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import {
-  ANSWER_BAND_LABEL,
   api,
   Icon,
   STATE_LABEL,
@@ -50,7 +49,6 @@ import {
   isStaff,
   relativeDays,
   useSession,
-  type AnswerBand,
   type IconName,
   type MasteryState,
 } from "@ai/core";
@@ -66,11 +64,13 @@ import {
   type StudentProfile,
 } from "@ai/m04";
 import {
-  bandOf,
+  STATUS_ORDER,
+  StatusBadge,
   topicName,
   useCohortStats,
   useHistory,
   useReport,
+  weakest as weakestAnswer,
   type SessionSummary,
 } from "@ai/m06";
 import { useDisputeQueue, useOutbox } from "@ai/m13";
@@ -176,22 +176,6 @@ const STATE_FILL: Record<string, string> = {
   emerging: "bg-line-strong",
 };
 
-const BAND_DOT: Record<AnswerBand, string> = {
-  strong: "bg-mastery-strong",
-  partly: "bg-mastery-ok",
-  not_yet: "bg-mastery-weak",
-};
-
-/** A band word with its colour as a dot — ink text passes contrast in both themes. */
-function BandChip({ band, n }: { band: AnswerBand; n?: number }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-xs font-medium text-ink">
-      <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${BAND_DOT[band]}`} />
-      {n !== undefined && <span data-numeric>{n}</span>}
-      {ANSWER_BAND_LABEL[band]}
-    </span>
-  );
-}
 
 const LIVE_STATUSES = new Set(["live", "paused"]);
 
@@ -417,7 +401,8 @@ function FocusCard({
 /**
  * Before the first interview: what it unlocks, shown rather than five empty
  * cards. Illustrations, labelled as examples, of the three things a student
- * gets back — notes with bands, a skill graph that fills in, a streak.
+ * gets back — notes with a status per answer, a skill graph that fills in, a
+ * streak.
  */
 function WhatYouGetCard() {
   return (
@@ -428,9 +413,9 @@ function WhatYouGetCard() {
           <p className="text-sm font-medium text-ink">Notes on every answer</p>
           <p className="mt-0.5 text-xs text-ink-faint">Where your reasoning held, and a word for each answer.</p>
           <div className="mt-2.5 flex flex-wrap gap-1.5" aria-hidden>
-            <BandChip band="strong" />
-            <BandChip band="partly" />
-            <BandChip band="not_yet" />
+            <StatusBadge status="correct" />
+            <StatusBadge status="partial" />
+            <StatusBadge status="incorrect" />
           </div>
         </li>
         <li>
@@ -596,9 +581,13 @@ const MODE_LABEL: Record<string, string> = {
 
 /**
  * How the last interview went — the reason to come back, so it sits second
- * only to the next action. Its bands (from M06's notes, the same reading the
- * notes and My answers use), the weakest topic as a one-click focused
- * interview, and the two before it.
+ * only to the next action. How its answers went (M06's statuses, the same
+ * badge the notes and My answers show), the weakest topic as a one-click
+ * focused interview, and the two before it.
+ *
+ * 2026-10-24: statuses, not bands. A band waited on M13's marking ("still
+ * being marked") and could call an answer Strong that the notes call
+ * Incorrect; the status is there the moment the interview ends.
  */
 function LastInterviewCard({ sessions, className = "" }: { sessions: SessionSummary[]; className?: string }) {
   const finished = sessions.filter((s) => s.status === "ended" && s.kind !== "drill");
@@ -607,13 +596,10 @@ function LastInterviewCard({ sessions, className = "" }: { sessions: SessionSumm
   const earlier = sessions.filter((s) => s.id !== last?.id).slice(0, 2);
 
   const questions = report.data?.questions ?? [];
-  const bands = questions.map(bandOf);
-  const counts = (["strong", "partly", "not_yet"] as AnswerBand[])
-    .map((band) => ({ band, n: bands.filter((b) => b === band).length }))
+  const counts = STATUS_ORDER.filter((status) => status !== "not_reached")
+    .map((status) => ({ status, n: questions.filter((q) => q.status === status).length }))
     .filter((c) => c.n > 0);
-  const marking = questions.some((q) => q.scoring_status === "queued");
-  const weakest = questions.find((q) => bandOf(q) === "not_yet" && q.concept_id) ??
-    questions.find((q) => bandOf(q) === "partly" && q.concept_id);
+  const weakest = weakestAnswer(questions);
   const weakName = weakest ? topicName(weakest) : null;
 
   return (
@@ -640,15 +626,12 @@ function LastInterviewCard({ sessions, className = "" }: { sessions: SessionSumm
           {counts.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">
               {counts.map((c) => (
-                <BandChip key={c.band} band={c.band} n={c.n} />
+                <StatusBadge key={c.status} status={c.status} count={c.n} />
               ))}
             </div>
           )}
-          {marking && (
-            <p className="mt-3 text-xs text-ink-soft">Some answers are still being marked — usually a minute.</p>
-          )}
-          {report.data && counts.length === 0 && !marking && (
-            <p className="mt-3 text-xs text-ink-soft">No answers to mark in this one.</p>
+          {report.data && counts.length === 0 && (
+            <p className="mt-3 text-xs text-ink-soft">No answers to look back on in this one.</p>
           )}
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Link
