@@ -17,7 +17,7 @@
  */
 import { Link } from "react-router-dom";
 
-import { Icon, PageHeader, SkeletonRows, relativeDays } from "@ai/core";
+import { Icon, PageHeader, SkeletonRows, instant, relativeDays } from "@ai/core";
 import { StatusBadge, topicName, useHistory, useReport, type SessionSummary } from "@ai/m06";
 
 function SessionAnswers({ s }: { s: SessionSummary }) {
@@ -28,7 +28,7 @@ function SessionAnswers({ s }: { s: SessionSummary }) {
       <header className="flex items-center gap-3 border-b border-line px-5 py-3.5">
         <Icon name="mic" size={16} className="text-ink-faint" />
         <span className="flex-1 text-sm font-medium text-ink">
-          {new Date(s.created_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+          {instant(s.created_at).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
           <span className="font-normal text-ink-faint"> · {relativeDays(s.created_at)}</span>
         </span>
         <Link to={`/mock/${s.id}/report`} className="text-xs font-medium text-brand">

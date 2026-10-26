@@ -10,7 +10,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 
-import { Icon, PageHeader, SkeletonRows, candidateIdOf, relativeDays, useSession } from "@ai/core";
+import { Icon, PageHeader, SkeletonRows, candidateIdOf, instant, relativeDays, useSession } from "@ai/core";
 import { useTrajectory } from "@ai/m04";
 import { useHistory, type SessionSummary } from "@ai/m06";
 
@@ -22,14 +22,14 @@ const MODE_LABEL: Record<string, string> = {
 };
 
 function monthOf(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  return instant(iso).toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
 function Row({ s }: { s: SessionSummary }) {
   const finished = s.status === "ended" || s.status === "aborted";
   const minutes =
     s.started_at && s.ended_at
-      ? Math.max(1, Math.round((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60_000))
+      ? Math.max(1, Math.round((instant(s.ended_at).getTime() - instant(s.started_at).getTime()) / 60_000))
       : null;
   return (
     <li>
@@ -45,7 +45,7 @@ function Row({ s }: { s: SessionSummary }) {
             {s.kind === "drill" ? "Defend drill" : `${MODE_LABEL[s.mode] ?? s.mode} interview`}
           </span>
           <span className="block text-xs text-ink-faint">
-            {new Date(s.created_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+            {instant(s.created_at).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
             {minutes === null
               ? ` · ${s.requested_minutes} min planned`
               : minutes > s.requested_minutes

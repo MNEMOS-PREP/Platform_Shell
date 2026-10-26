@@ -18,6 +18,21 @@ export interface PracticeSession {
   status: string;
 }
 
+/**
+ * A server timestamp as the instant it is: no zone means UTC. SQLite hands
+ * every module's timestamps back without one ("2026-10-22T19:51:04"), and a
+ * browser reads that as local time — so an interview at 1:21 a.m. in India
+ * (19:51 UTC) was filed under the day before and broke the streak it
+ * extended. The same rule as `@ai/core`'s `instant()` (v0.41.0), kept here so
+ * this file stays free of imports and runs under `npm test`.
+ */
+export function instant(iso: string): Date {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (day) return new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]));
+  const zoned = /(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$/.test(iso);
+  return new Date(zoned ? iso : `${iso.replace(" ", "T")}Z`);
+}
+
 /** Local calendar date, `YYYY-MM-DD` — a streak is about the student's days. */
 export function dayKey(date: Date): string {
   const y = date.getFullYear();
@@ -36,7 +51,7 @@ function addDays(date: Date, days: number): Date {
 export function practiceDays(sessions: PracticeSession[]): Set<string> {
   const days = new Set<string>();
   for (const s of sessions) {
-    if (s.started_at) days.add(dayKey(new Date(s.started_at)));
+    if (s.started_at) days.add(dayKey(instant(s.started_at)));
   }
   return days;
 }
@@ -84,7 +99,7 @@ export function thisWeek(sessions: PracticeSession[], today = new Date()): numbe
   const end = dayKey(today);
   return sessions.filter((s) => {
     if (!s.started_at) return false;
-    const key = dayKey(new Date(s.started_at));
+    const key = dayKey(instant(s.started_at));
     return key >= start && key <= end;
   }).length;
 }
@@ -119,10 +134,12 @@ export function writeGoal(goal: number): void {
 export function measuredOverTime(
   series: { points: { observed_at: string }[] }[],
 ): { date: string; count: number }[] {
+  // The student's calendar day, as the streak counts them — not the UTC date
+  // the timestamp's first ten characters happen to spell.
   const firsts = series
-    .map((s) => s.points.map((p) => p.observed_at).sort()[0])
-    .filter((d): d is string => Boolean(d))
-    .map((d) => d.slice(0, 10))
+    .map((s) => s.points.map((p) => instant(p.observed_at).getTime()).sort((a, b) => a - b)[0])
+    .filter((t): t is number => t !== undefined && !Number.isNaN(t))
+    .map((t) => dayKey(new Date(t)))
     .sort();
   const out: { date: string; count: number }[] = [];
   firsts.forEach((date, i) => {
