@@ -14,7 +14,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Icon, PageHeader, SkeletonRows, candidateIdOf, signIn, signOut, useSession } from "@ai/core";
+import { Icon, PageHeader, SkeletonRows, candidateIdOf, instant, signIn, signOut, useSession } from "@ai/core";
 import {
   downloadMyData,
   useCurricula,
@@ -331,7 +331,7 @@ export function Settings() {
                   <span>
                     <span className="font-medium text-ink">Your progress is being remembered.</span> You
                     agreed on{" "}
-                    {new Date(consent.data.granted_at).toLocaleDateString(undefined, {
+                    {instant(consent.data.granted_at).toLocaleDateString(undefined, {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
