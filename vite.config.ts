@@ -38,6 +38,7 @@ const API = {
   // GD Arena: framed by /gd, not proxied by noun; this gives /sys/m14/health.
   m14: 8114,
   m15: 8115,
+  m20: 8120,
 } as const;
 type Mod = keyof typeof API;
 
@@ -51,6 +52,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m11": sibling("Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"),
   "@ai/m13": sibling("Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"),
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
+  "@ai/m20": sibling("Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"),
 };
 
 /**
@@ -106,6 +108,11 @@ const OWNER: Record<string, Mod> = {
   companies: "m15",
   experiences: "m15",
   submissions: "m15",
+  // M20, the course library and the viva on it (2026-10-28). Both nouns are
+  // its own: M01's resume library is /v1/resumes/…/library, M06's question
+  // library /v1/interviews/…, so neither takes `library`.
+  library: "m20",
+  vivas: "m20",
   /*
     The one genuine collision: every module serves /v1/deps, because each
     module answers "what am I missing" for itself. Only M13's DepsPage is
@@ -179,6 +186,8 @@ const SCREEN_OWNER: Record<string, Mod> = {
   review: "m15",
   ops: "m15",
   me: "m15",
+  library: "m20",
+  viva: "m20",
 };
 
 const depsByScreen: Plugin = {
@@ -220,7 +229,15 @@ export default defineConfig({
   },
   // Source, not a build — Vite must transform these rather than pre-bundle
   // them as opaque dependencies.
-  optimizeDeps: { exclude: Object.keys(MODULE_SRC) },
+  optimizeDeps: {
+    exclude: Object.keys(MODULE_SRC),
+    // Core's 3D head (TalkingHead) imports its renderer at run time, from
+    // source Vite does not scan (Core is aliased and excluded above). Found
+    // only when first asked for, the renderer and three were bundled then and
+    // the page reloaded mid-render: the first screen after a restart came up
+    // blank (2026-10-28). Scanning that file bundles them at start.
+    entries: ["index.html", "../Platform_Core/src/components/TalkingHead.tsx"],
+  },
   server: {
     port: 5173,
     // The module sources live outside this repo's root.

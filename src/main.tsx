@@ -51,6 +51,7 @@ import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m11Routes } from "@ai/m11";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
+import { m20Routes } from "@ai/m20";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Answers } from "./pages/Answers";
@@ -87,6 +88,9 @@ import "./theme.css";
 const TODAY: FrameNavItem = { to: "/", label: "Today", icon: "compass" };
 const COMPANIES: FrameNavItem = { to: "/companies", label: "Companies", icon: "building" };
 const JD: FrameNavItem = { to: "/jd", label: "Job description", icon: "listChecks", match: "/jds" };
+/* M20 (2026-10-28): a student's courses and their material, browsed the way
+   the university files them; staff curate it, so it is theirs to browse too. */
+const LIBRARY: FrameNavItem = { to: "/library", label: "Course library", icon: "layers" };
 
 const STUDENT_NAV: FrameNavGroup[] = [
   {
@@ -96,6 +100,8 @@ const STUDENT_NAV: FrameNavGroup[] = [
       { to: "/mock", label: "Mock interview", icon: "mic" },
       // M14, framed from its own app (pages/GroupDiscussion.tsx).
       { to: "/gd", label: "Group discussion", icon: "users" },
+      // M20: examined on your own course material — a lab exam, a viva voce.
+      { to: "/viva", label: "Viva practice", icon: "student" },
     ],
   },
   {
@@ -117,6 +123,7 @@ const STUDENT_NAV: FrameNavGroup[] = [
       COMPANIES,
       JD,
       { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
+      LIBRARY,
     ],
   },
 ];
@@ -169,7 +176,7 @@ const BEFORE_WELCOME = new Set(["/welcome", "/signin", "/settings", "/help"]);
 */
 const STUDENT_ONLY = [
   ...STUDENT_NAV.flatMap((group) => group.items)
-    .filter((item) => item !== TODAY && item !== COMPANIES && item !== JD)
+    .filter((item) => item !== TODAY && item !== COMPANIES && item !== JD && item !== LIBRARY)
     .map((item) => item.to),
   "/resumes",
   "/me",
@@ -310,7 +317,7 @@ function AppCrashed() {
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "M15"]);
+const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M20"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
@@ -411,7 +418,7 @@ function App() {
         { label: "Staff", items: staff },
         ...(reviewerOnly
           ? []
-          : [{ label: "Browse", items: [COMPANIES, JD] }, { label: "Platform", items: PLATFORM_NAV }]),
+          : [{ label: "Browse", items: [COMPANIES, JD, LIBRARY] }, { label: "Platform", items: PLATFORM_NAV }]),
       ]
     : STUDENT_NAV;
 
@@ -451,6 +458,7 @@ function App() {
         {m11Routes}
         {m13Routes}
         {m15Routes}
+        {m20Routes}
 
         {PLACEHOLDERS.map((m) => (
           <Route key={m.id} path={m.path} element={<NotBuilt name={m.name} blurb={m.blurb} />} />
