@@ -111,6 +111,8 @@ const STUDENT_NAV: FrameNavGroup[] = [
       // interview marked worth another go — practised again from there.
       { to: "/mock/library", label: "Question library", icon: "star" },
       { to: "/skills", label: "Skill graph", icon: "graph" },
+      // M20: how a student answers and speaks across their vivas (2026-10-29).
+      { to: "/viva/progress", label: "Viva progress", icon: "chart" },
       { to: "/history", label: "History", icon: "clock" },
     ],
   },
