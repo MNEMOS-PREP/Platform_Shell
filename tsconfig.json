@@ -22,7 +22,8 @@
       "@ai/m06": ["../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"],
       "@ai/m11": ["../Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"],
       "@ai/m13": ["../Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"],
-      "@ai/m15": ["../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"]
+      "@ai/m15": ["../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"],
+      "@ai/m20": ["../Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"]
     }
   },
   "include": ["src"]
