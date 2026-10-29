@@ -228,9 +228,13 @@ export function Welcome() {
   const hadConsent = useRef<boolean | null>(null);
   if (consent.isSuccess && hadConsent.current === null) hadConsent.current = Boolean(consent.data);
   const askConsent = hadConsent.current !== true;
+  // The courses step follows choosing a programme on the first step, so the
+  // first step counts it: "Step 1 of 4" then "Step 2 of 5" read as a form
+  // growing under the student (walkthrough, 2026-10-29). Only a student who
+  // leaves step 1 without a programme sees the count drop, and theirs is true.
   const steps: StepKey[] = [
     "you",
-    ...(curriculumId && semester !== null ? (["courses"] as const) : []),
+    ...(step === 0 || (curriculumId && semester !== null) ? (["courses"] as const) : []),
     "drives",
     "rhythm",
     ...(askConsent ? (["consent"] as const) : []),
@@ -334,7 +338,7 @@ export function Welcome() {
           Welcome{shown ? `, ${shown}` : ""}. What are you preparing for?
         </h1>
         <p className="mt-2 text-ink-soft">
-          So the interviewer asks what your role will, from what you've studied so far.
+          So the interviewer asks what your role will need, from what you've studied so far.
         </p>
         <div className="mt-6 space-y-4">
           <label className="block text-sm font-medium text-ink">

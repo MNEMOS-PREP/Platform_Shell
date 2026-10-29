@@ -36,6 +36,7 @@ const API = {
   m11: 8111,
   m13: 8113,
   m15: 8115,
+  m16: 8116,
   m20: 8120,
 } as const;
 type Mod = keyof typeof API;
@@ -50,6 +51,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m11": sibling("Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"),
   "@ai/m13": sibling("Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"),
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
+  "@ai/m16": sibling("Counselor/Frontend/frontend_M16_Counselor/src/index.ts"),
   "@ai/m20": sibling("Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"),
 };
 
@@ -111,6 +113,10 @@ const OWNER: Record<string, Mod> = {
   // library /v1/interviews/…, so neither takes `library`.
   library: "m20",
   vivas: "m20",
+  // M16, the talk after the report card (2026-10-29). Its own noun: the
+  // student's id rides under it (/v1/counsel/candidates/…), as M04 owns
+  // `candidates` at the top level.
+  counsel: "m16",
   /*
     The one genuine collision: every module serves /v1/deps, because each
     module answers "what am I missing" for itself. Only M13's DepsPage is
@@ -186,6 +192,7 @@ const SCREEN_OWNER: Record<string, Mod> = {
   me: "m15",
   library: "m20",
   viva: "m20",
+  counsel: "m16",
 };
 
 const depsByScreen: Plugin = {
