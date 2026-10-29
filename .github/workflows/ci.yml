@@ -1,0 +1,34 @@
+# Every push to main and every pull request: lint, tests and a typecheck.
+# The suites need the network only to install, and no API key.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend · test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      # No typecheck or build here: both compile every module's source from the
+      # repos beside this one, and one of them (M15, in Final_Year_Project) is
+      # private, so this repo's token cannot check it out.
+      - run: npm test --if-present
