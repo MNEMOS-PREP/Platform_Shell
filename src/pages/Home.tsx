@@ -75,6 +75,7 @@ import {
 } from "@ai/m06";
 import { useDisputeQueue, useOutbox } from "@ai/m13";
 import { useClaimReports, useReviewQueue } from "@ai/m15";
+import { CounselNudge } from "@ai/m16";
 
 import { firstName } from "../lib/account";
 import { useTrackTitles } from "../lib/tracks";
@@ -1179,11 +1180,11 @@ function StaffHome({ admin }: { admin: boolean }) {
           <span className="font-semibold" data-numeric>
             {cohort.data?.students_this_week ?? "—"}
           </span>{" "}
-          students practised ·{" "}
+          {cohort.data?.students_this_week === 1 ? "student" : "students"} practised ·{" "}
           <span className="font-semibold" data-numeric>
             {cohort.data?.interviews_this_week ?? "—"}
           </span>{" "}
-          interviews
+          {cohort.data?.interviews_this_week === 1 ? "interview" : "interviews"}
         </p>
         <span className="text-xs text-ink-faint">Counts only — never one student's record.</span>
       </section>
@@ -1330,6 +1331,10 @@ export function Home() {
           </Link>
         )}
       </header>
+
+      {/* M16: a talk waiting is the most personal thing on the page, so it
+          comes first; nothing at all when there is none. */}
+      <CounselNudge className="mt-5" />
 
       <Nudges candidate={candidate} profile={profile.data} />
 
