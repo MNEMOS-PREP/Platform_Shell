@@ -41,9 +41,9 @@ import {
   useLocation,
   useRouteError,
 } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 
-import { MODULES, candidateIdOf, canReview, isStaff, useSession } from "@ai/core";
+import { MODULES, api, candidateIdOf, canReview, isStaff, useSession } from "@ai/core";
 import { m01Routes } from "@ai/m01";
 import { m02Routes } from "@ai/m02";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
@@ -51,6 +51,7 @@ import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m11Routes } from "@ai/m11";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
+import { CounselNudge, m16Routes } from "@ai/m16";
 import { m20Routes } from "@ai/m20";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
@@ -107,6 +108,9 @@ const STUDENT_NAV: FrameNavGroup[] = [
   {
     label: "Progress",
     items: [
+      // M16 (2026-10-29): the talk after the report card — someone going
+      // through how it went, what to work on, and holding you to a plan.
+      { to: "/counsel", label: "Your counselor", icon: "compass" },
       // A student's "evaluation" is their own marked answers (2026-10-04).
       // M13's bench, which this used to open, is a staff tool now.
       { to: "/answers", label: "My answers", icon: "target", match: "/turns" },
@@ -319,8 +323,26 @@ function AppCrashed() {
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M20"]);
+const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M16", "M20"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
+
+/*
+  After an interview, the counselor's talk (M16) floats over the notes — and
+  only once the interview has ENDED: the room and its notes share one path,
+  and a card during a live interview would pull the student out of the room.
+*/
+function AfterInterviewNudge() {
+  const location = useLocation();
+  const sid = /^\/mock\/([0-9a-f-]{36})$/.exec(location.pathname)?.[1];
+  const status = useQuery({
+    queryKey: ["shell", "interview-status", sid],
+    queryFn: () => api.get<{ status: string }>(`/v1/interviews/${sid}`),
+    enabled: !!sid,
+    refetchInterval: (query) => (query.state.data?.status === "ended" ? false : 5000),
+  });
+  if (!sid || status.data?.status !== "ended") return null;
+  return <CounselNudge variant="float" />;
+}
 
 /*
   The theme, before the first paint (lib/theme.ts). The frame's toggle used to
@@ -460,6 +482,7 @@ function App() {
         {m11Routes}
         {m13Routes}
         {m15Routes}
+        {m16Routes}
         {m20Routes}
 
         {PLACEHOLDERS.map((m) => (
@@ -470,6 +493,7 @@ function App() {
       </Routes>
       )}
       </ScreenBoundary>
+      {!staffRole && <AfterInterviewNudge />}
       </MockTargetsContext.Provider>
     </Frame>
   );
