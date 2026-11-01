@@ -51,7 +51,7 @@ import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m11Routes } from "@ai/m11";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
-import { CounselNudge, m16Routes } from "@ai/m16";
+import { NotesCounsel, m16Routes } from "@ai/m16";
 import { m20Routes } from "@ai/m20";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
@@ -110,7 +110,7 @@ const STUDENT_NAV: FrameNavGroup[] = [
     items: [
       // M16 (2026-10-29): the talk after the report card — someone going
       // through how it went, what to work on, and holding you to a plan.
-      { to: "/counsel", label: "Your counselor", icon: "compass" },
+      { to: "/counsel", label: "Your mentor", icon: "compass" },
       // A student's "evaluation" is their own marked answers (2026-10-04).
       // M13's bench, which this used to open, is a staff tool now.
       { to: "/answers", label: "My answers", icon: "target", match: "/turns" },
@@ -327,9 +327,10 @@ const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
-  After an interview, the counselor's talk (M16) floats over the notes — and
-  only once the interview has ENDED: the room and its notes share one path,
-  and a card during a live interview would pull the student out of the room.
+  After an interview, the mentor (M16) floats over the notes — the talk when
+  one is due, and "go through these notes with me" — and only once the
+  interview has ENDED: the room and its notes share one path, and a card
+  during a live interview would pull the student out of the room.
 */
 function AfterInterviewNudge() {
   const location = useLocation();
@@ -341,7 +342,7 @@ function AfterInterviewNudge() {
     refetchInterval: (query) => (query.state.data?.status === "ended" ? false : 5000),
   });
   if (!sid || status.data?.status !== "ended") return null;
-  return <CounselNudge variant="float" />;
+  return <NotesCounsel sessionId={sid} />;
 }
 
 /*
