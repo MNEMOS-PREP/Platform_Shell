@@ -254,8 +254,7 @@ export default defineConfig({
   server: {
     port: 5173,
     // The module sources live outside this repo's root.
-    // The run folder links module checkouts that live one level up.
-    fs: { allow: [sibling("."), resolve(here, "..", "..")] },
+    fs: { allow: [sibling(".")] },
     proxy,
   },
   preview: { port: 4173 },
