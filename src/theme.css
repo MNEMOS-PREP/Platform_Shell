@@ -180,43 +180,43 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --color-canvas: #0f1f1b;
-    --color-surface: #142d27;
-    --color-surface-sunken: #10241f;
-    --color-line: oklch(1 0 0 / 0.08);
-    --color-line-strong: oklch(1 0 0 / 0.15);
+    --color-canvas: #000000;
+    --color-surface: #0a100b;
+    --color-surface-sunken: #050805;
+    --color-line: rgb(155 232 168 / 0.16);
+    --color-line-strong: rgb(155 232 168 / 0.3);
 
     /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
        the brightest thing on a dark screen. */
-    --color-rail: #0c1915;
-    --color-rail-line: oklch(1 0 0 / 0.065);
-    --color-rail-ink: #eef4ef;
-    --color-rail-ink-soft: #adc4b8;
-    --color-rail-hover: oklch(1 0 0 / 0.045);
-    --color-rail-active: oklch(1 0 0 / 0.075);
+    --color-rail: #000000;
+    --color-rail-line: rgb(155 232 168 / 0.14);
+    --color-rail-ink: #d4f5d6;
+    --color-rail-ink-soft: #9fd4a8;
+    --color-rail-hover: rgb(155 232 168 / 0.08);
+    --color-rail-active: rgb(155 232 168 / 0.15);
 
-    --color-ink: #eef4ef;
-    --color-ink-soft: #adc4b8;
+    --color-ink: #d4f5d6;
+    --color-ink-soft: #a3d9ab;
     /* 0.615 → 0.66 (2026-10-04, axe): faint text sat at 4.0:1 on the
        tinted panels (green "what a strong answer covers", amber notices). */
-    --color-ink-faint: #8da89b;
+    --color-ink-faint: #7cb987;
 
-    --color-brand: #2a8a6c;
+    --color-brand: #9be8a8;
     /* Brand as TEXT. The fill reads well behind white, but as a link or label
        on a dark surface it measured 3.6:1 on brand-soft and 4.1:1 on surface;
        this lighter step is 6:1+ on both. */
-    --color-brand-ink: #c9f4c8;
+    --color-brand-ink: #b9f2c0;
     /* Core's dark on-brand is near-black, for core's lighter dark brand; on
        this brand it measured 4.17:1. White is 4.6:1. */
-    --color-on-brand: oklch(1 0 0);
-    --color-brand-hover: #35a081;
-    --color-brand-soft: #1b3d33;
-    --color-brand-line: #2f5a4a;
+    --color-on-brand: #04180b;
+    --color-brand-hover: #b6f2c0;
+    --color-brand-soft: #0d2214;
+    --color-brand-line: #2d6a3e;
     --color-accent: #8dcba4;
 
     --shadow-card: 0 0 0 0 transparent;
     --shadow-raised: 0 16px 40px -16px oklch(0 0 0 / 0.7);
-    --shadow-glow: 0 8px 28px -8px rgb(42 138 108 / 0.5);
+    --shadow-glow: 0 8px 28px -8px rgb(155 232 168 / 0.35);
 
     --color-quote: oklch(0.272 0.055 156);
     --color-quote-line: oklch(0.66 0.14 156);
@@ -271,7 +271,7 @@
 
   :root[data-theme="dark"] body {
     background:
-      radial-gradient(900px 420px at 40% -14%, rgb(42 138 108 / 0.12), transparent 64%),
+      radial-gradient(900px 420px at 40% -14%, rgb(155 232 168 / 0.05), transparent 64%),
       var(--color-canvas);
     background-attachment: fixed;
   }
@@ -874,3 +874,20 @@
 .landing-in { animation: landing-rise 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 .landing-swap { animation: landing-rise 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
 @media (prefers-reduced-motion: reduce) { .landing-in, .landing-swap { animation: none; } }
+
+/* Black dark mode: filled brand buttons carry dark text on the light green. */
+:root[data-theme="dark"] button.bg-brand,
+:root[data-theme="dark"] a.bg-brand,
+:root[data-theme="dark"] button[class*="bg-brand"]:not([class*="bg-brand-"]) {
+  color: var(--color-on-brand);
+}
+:root[data-theme="dark"] .bg-brand-gradient { background-color: var(--color-brand); color: var(--color-on-brand); }
+
+/* Black dark mode: the deep-green panels the modules draw inline become near-black with a green edge. */
+:root[data-theme="dark"] [class*="bg-[#142d27]"] {
+  background-color: #0a100b !important;
+  box-shadow: inset 0 0 0 1px rgb(155 232 168 / 0.22);
+}
+:root[data-theme="dark"] [class*="bg-[#203e35]"] { background-color: #0f1d12 !important; }
+:root[data-theme="dark"] [class*="border-[#3c574b]"] { border-color: rgb(155 232 168 / 0.22) !important; }
+:root[data-theme="dark"] .slip { background: #0a100b; box-shadow: inset 0 0 0 1px rgb(155 232 168 / 0.22); }
