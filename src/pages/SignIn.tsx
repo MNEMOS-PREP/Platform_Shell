@@ -106,12 +106,7 @@ export function SignIn() {
 
   const brand = (
     <div className="flex items-center gap-3">
-      <span
-        aria-hidden
-        className="bg-brand-gradient grid h-11 w-11 place-items-center rounded-2xl text-white shadow-glow"
-      >
-        <Icon name="sparkles" size={20} />
-      </span>
+      <img src="/logo.png" alt="" aria-hidden className="h-11 w-auto" />
       <span>
         <span className="block font-semibold tracking-tight text-ink">AI Interviewer</span>
         <span className="block text-xs text-ink-faint">Placement prep that shows its work</span>
