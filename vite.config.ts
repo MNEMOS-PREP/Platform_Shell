@@ -30,11 +30,14 @@ const sibling = (p: string) => resolve(here, "..", p);
 const API = {
   m01: 8101,
   m02: 8102,
+  m03: 8103,
   m04: 8104,
   m05: 8105,
   m06: 8106,
   m11: 8111,
   m13: 8113,
+  // GD Arena: framed by /gd, not proxied by noun; this gives /sys/m14/health.
+  m14: 8114,
   m15: 8115,
   m16: 8116,
   m20: 8120,
@@ -46,6 +49,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/core": sibling("Platform_Core/src/index.ts"),
   "@ai/m01": sibling("resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src/index.ts"),
   "@ai/m02": sibling("jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"),
+  "@ai/m03": sibling("GitHub_Analyzer/Frontend/frontend_M03_GitHub_Analyzer/src/index.ts"),
   "@ai/m04": sibling("Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"),
   "@ai/m06": sibling("Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"),
   "@ai/m11": sibling("Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"),
@@ -75,6 +79,9 @@ const OWNER: Record<string, Mod> = {
   doors: "m02",
   jds: "m02",
   performance: "m02",
+  // M03: /v1/repos/... is a repository analysis, /v1/github/... the optional GitHub sign-in.
+  github: "m03",
+  repos: "m03",
   candidates: "m04",
   concepts: "m04",
   // The programmes and courses sign-in offers (2026-10-13).
@@ -176,6 +183,7 @@ const SCREEN_OWNER: Record<string, Mod> = {
   resumes: "m01",
   jd: "m02",
   jds: "m02",
+  github: "m03",
   skills: "m04",
   mock: "m06",
   voice: "m11",

@@ -53,6 +53,7 @@
 */
 @source "../../resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src";
 @source "../../jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src";
+@source "../../GitHub_Analyzer/Frontend/frontend_M03_GitHub_Analyzer/src";
 @source "../../Memory/Frontend/frontend_M04_Skill_Graph_Memory/src";
 @source "../../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src";
 @source "../../Voice_Engine/Frontend/frontend_M11_Voice_Engine/src";
@@ -67,14 +68,14 @@
      demo laptop with no network renders the same page. Until 2026-10-03 no
      face was loaded at all and Windows drew everything in Segoe UI - the
      single largest reason the product read as dated. */
-  --font-sans: "Geist Variable", "Geist", "Inter", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Geist Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono Variable", "Geist Mono", ui-monospace, "Cascadia Code", monospace;
 
   /* Controls get a little more radius than Tailwind's default; panels get a
      lot more (`--radius-panel`). Square corners are most of "1980s". */
   --radius-md: 0.5rem;
   --radius-lg: 0.625rem;
-  --radius-xl: 0.875rem;
+  --radius-xl: 0.75rem;
 
   /* ── type ───────────────────────────────────────────────────────────────
      A real modular scale with negative tracking on the large sizes. The
@@ -101,51 +102,51 @@
      The point of the change: canvas is far enough below surface that a panel
      is legible as a raised object rather than as a rectangle of the same
      colour with a faint outline. */
-  --color-canvas: oklch(0.986 0.002 275);
+  --color-canvas: #f7f8f4;
   --color-surface: oklch(1 0 0);
-  --color-surface-sunken: oklch(0.968 0.004 275);
-  --color-line: oklch(0.918 0.006 275);
-  --color-line-strong: oklch(0.855 0.01 275);
+  --color-surface-sunken: #f1f3ec;
+  --color-line: #dde5dc;
+  --color-line-strong: #c3d0c4;
 
-  --color-ink: oklch(0.18 0.016 275);
-  --color-ink-soft: oklch(0.44 0.016 275);
+  --color-ink: #192d28;
+  --color-ink-soft: #55645c;
   /* 0.56 → 0.52 (2026-10-04, axe): 4.2:1 on the brand-soft and green
      tints; 4.6:1+ everywhere now. */
-  --color-ink-faint: oklch(0.52 0.014 275);
+  --color-ink-faint: #68766e;
 
   /* ── brand ──────────────────────────────────────────────────────────────
      Enough chroma to survive being a 32px filled square in a dark rail, and
      dark enough to hold white text at AA. */
-  --color-brand: oklch(0.535 0.2 279);
-  --color-brand-hover: oklch(0.475 0.205 279);
-  --color-brand-soft: oklch(0.965 0.024 279);
-  --color-brand-line: oklch(0.865 0.06 279);
+  --color-brand: #176b55;
+  --color-brand-hover: #115240;
+  --color-brand-soft: #e8f3ec;
+  --color-brand-line: #b4d3c2;
   /* The far end of the brand gradient (logo, primary actions, hero words).
      Decoration only: nothing in the product MEANS "accent". */
-  --color-accent: oklch(0.66 0.14 240);
+  --color-accent: #6eaa8a;
 
   /* ── the rail ───────────────────────────────────────────────────────────
      Deep indigo rather than neutral charcoal. It is the only chrome that is
      always on screen, and a grey column beside a grey page is what made the
      old layout read as unfinished. */
-  --color-rail: oklch(0.972 0.003 275);
-  --color-rail-line: oklch(0.918 0.006 275);
-  --color-rail-ink: oklch(0.18 0.016 275);
-  --color-rail-ink-soft: oklch(0.47 0.015 275);
+  --color-rail: #ffffff;
+  --color-rail-line: #dde5dc;
+  --color-rail-ink: #192d28;
+  --color-rail-ink-soft: #55645c;
   /* Rail states as tokens, not `bg-white/8`: the rail is light in light mode. */
-  --color-rail-hover: oklch(0.18 0.016 275 / 0.045);
-  --color-rail-active: oklch(0.18 0.016 275 / 0.075);
+  --color-rail-hover: #f1f3ec;
+  --color-rail-active: #e8f3ec;
 
   /* ── depth ──────────────────────────────────────────────────────────────
      Small, tight, and actually present. `--shadow-card: none` is what made
      every panel sit flat in the page. */
   --shadow-card:
-    0 1px 2px oklch(0.18 0.016 275 / 0.045);
+    0 1px 2px rgb(25 45 40 / 0.04);
   --shadow-raised:
-    0 1px 2px oklch(0.18 0.016 275 / 0.05), 0 12px 32px -12px oklch(0.18 0.016 275 / 0.16);
-  --shadow-glow: 0 6px 20px -6px oklch(0.535 0.2 279 / 0.5);
+    0 1px 2px rgb(25 45 40 / 0.05), 0 16px 48px -16px rgb(22 59 39 / 0.18);
+  --shadow-glow: 0 6px 20px -8px rgb(23 107 85 / 0.35);
 
-  --radius-panel: 0.875rem;
+  --radius-panel: 1.25rem;
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 
   /* ── M13's evidence marks ───────────────────────────────────────────────
@@ -179,43 +180,43 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --color-canvas: oklch(0.135 0.008 275);
-    --color-surface: oklch(0.168 0.009 275);
-    --color-surface-sunken: oklch(0.152 0.008 275);
-    --color-line: oklch(1 0 0 / 0.08);
-    --color-line-strong: oklch(1 0 0 / 0.15);
+    --color-canvas: #000000;
+    --color-surface: #0a100b;
+    --color-surface-sunken: #050805;
+    --color-line: rgb(155 232 168 / 0.16);
+    --color-line-strong: rgb(155 232 168 / 0.3);
 
     /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
        the brightest thing on a dark screen. */
-    --color-rail: oklch(0.118 0.007 275);
-    --color-rail-line: oklch(1 0 0 / 0.065);
-    --color-rail-ink: oklch(0.965 0.004 275);
-    --color-rail-ink-soft: oklch(0.68 0.012 275);
-    --color-rail-hover: oklch(1 0 0 / 0.045);
-    --color-rail-active: oklch(1 0 0 / 0.075);
+    --color-rail: #000000;
+    --color-rail-line: rgb(155 232 168 / 0.14);
+    --color-rail-ink: #d4f5d6;
+    --color-rail-ink-soft: #9fd4a8;
+    --color-rail-hover: rgb(155 232 168 / 0.08);
+    --color-rail-active: rgb(155 232 168 / 0.15);
 
-    --color-ink: oklch(0.965 0.004 275);
-    --color-ink-soft: oklch(0.75 0.01 275);
+    --color-ink: #d4f5d6;
+    --color-ink-soft: #a3d9ab;
     /* 0.615 → 0.66 (2026-10-04, axe): faint text sat at 4.0:1 on the
        tinted panels (green "what a strong answer covers", amber notices). */
-    --color-ink-faint: oklch(0.66 0.012 275);
+    --color-ink-faint: #7cb987;
 
-    --color-brand: oklch(0.575 0.19 279);
+    --color-brand: #9be8a8;
     /* Brand as TEXT. The fill reads well behind white, but as a link or label
        on a dark surface it measured 3.6:1 on brand-soft and 4.1:1 on surface;
        this lighter step is 6:1+ on both. */
-    --color-brand-ink: oklch(0.76 0.13 279);
+    --color-brand-ink: #b9f2c0;
     /* Core's dark on-brand is near-black, for core's lighter dark brand; on
        this brand it measured 4.17:1. White is 4.6:1. */
-    --color-on-brand: oklch(1 0 0);
-    --color-brand-hover: oklch(0.63 0.18 279);
-    --color-brand-soft: oklch(0.235 0.06 279);
-    --color-brand-line: oklch(0.4 0.11 279);
-    --color-accent: oklch(0.72 0.12 235);
+    --color-on-brand: #04180b;
+    --color-brand-hover: #b6f2c0;
+    --color-brand-soft: #0d2214;
+    --color-brand-line: #2d6a3e;
+    --color-accent: #8dcba4;
 
     --shadow-card: 0 0 0 0 transparent;
     --shadow-raised: 0 16px 40px -16px oklch(0 0 0 / 0.7);
-    --shadow-glow: 0 8px 28px -8px oklch(0.575 0.19 279 / 0.65);
+    --shadow-glow: 0 8px 28px -8px rgb(155 232 168 / 0.35);
 
     --color-quote: oklch(0.272 0.055 156);
     --color-quote-line: oklch(0.66 0.14 156);
@@ -254,15 +255,15 @@
      tint a panel. Fixed, so it does not scroll away as a stripe. */
   body {
     background:
-      radial-gradient(1000px 480px at 30% -12%, oklch(0.535 0.2 279 / 0.05), transparent 62%),
+      radial-gradient(1000px 480px at 30% -12%, rgb(23 107 85 / 0.04), transparent 62%),
       var(--color-canvas);
     background-attachment: fixed;
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 0.9375rem;
-    letter-spacing: -0.008em;
+    letter-spacing: -0.005em;
     /* Geist's single-storey a and tabular-friendly figures read as product UI. */
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -270,7 +271,7 @@
 
   :root[data-theme="dark"] body {
     background:
-      radial-gradient(900px 420px at 40% -14%, oklch(0.575 0.19 279 / 0.13), transparent 64%),
+      radial-gradient(900px 420px at 40% -14%, rgb(155 232 168 / 0.05), transparent 64%),
       var(--color-canvas);
     background-attachment: fixed;
   }
@@ -790,4 +791,133 @@
     border-radius: 2px;
     padding: 0 0.1em;
   }
+}
+
+/*
+  ── Figma design layer ──────────────────────────────────────────────────────
+  Component rules the modules used to ship in their own `ui/theme.css`, which
+  the shell does not import. They live here so the shell and the standalone
+  modules draw the same cards, the same deep-green panel and the same flat
+  green button.
+*/
+@layer components {
+  /* A selectable card: mint fill and a 1.5px green edge when chosen. */
+  .choice {
+    min-width: 0;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    padding: 1.125rem;
+    text-align: left;
+    color: var(--color-ink-soft);
+    transition: border-color 160ms, background-color 160ms, transform 160ms;
+  }
+  .choice:hover {
+    border-color: var(--color-line-strong);
+    color: var(--color-ink);
+    transform: translateY(-1px);
+  }
+  .choice[aria-pressed="true"] {
+    background: var(--color-brand-soft);
+    border: 1.5px solid var(--color-brand);
+    padding: calc(1.125rem - 0.5px);
+    color: var(--color-ink);
+  }
+
+  /* The one deep panel on a screen. */
+  .slip {
+    background: #142d27;
+    border-radius: 1.25rem;
+    color: #fff;
+    padding: 1.625rem;
+    box-shadow: 0 16px 48px rgb(22 59 39 / 0.07);
+  }
+  .slip-head { color: #c9f4c8; font-size: 0.6875rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* The start button on that panel: mint. */
+  .start-plan {
+    background: #c9f4c8;
+    color: #192d28;
+    border: 1px solid transparent;
+    transition: filter 160ms, transform 160ms;
+  }
+  .start-plan:hover:not(:disabled) { filter: brightness(0.96); transform: translateY(-1px); }
+
+  /* Primary buttons are one flat green, not a gradient. */
+  button.bg-brand,
+  a.bg-brand,
+  button[class*="bg-brand"]:not([class*="bg-brand-"]) {
+    background-image: none;
+    box-shadow: none;
+    border-radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  /* The headline accent: green italic serif, as in the Figma, not a gradient. */
+  .text-gradient {
+    background: none !important;
+    -webkit-text-fill-color: currentColor !important;
+    color: var(--color-brand);
+    font-family: "Lora", Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .bg-brand-gradient {
+    background-image: none !important;
+    background-color: var(--color-brand);
+  }
+}
+
+/* The landing: one entrance on load, and the reply that arrives when a question is picked. */
+@keyframes landing-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.landing-in { animation: landing-rise 520ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+.landing-swap { animation: landing-rise 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+@media (prefers-reduced-motion: reduce) { .landing-in, .landing-swap { animation: none; } }
+
+/* Black dark mode: filled brand buttons carry dark text on the light green. */
+:root[data-theme="dark"] button.bg-brand,
+:root[data-theme="dark"] a.bg-brand,
+:root[data-theme="dark"] button[class*="bg-brand"]:not([class*="bg-brand-"]) {
+  color: var(--color-on-brand);
+}
+:root[data-theme="dark"] .bg-brand-gradient { background-color: var(--color-brand); color: var(--color-on-brand); }
+
+/* Black dark mode: the deep-green panels the modules draw inline become near-black with a green edge. */
+:root[data-theme="dark"] [class*="bg-[#142d27]"] {
+  background-color: #0a100b !important;
+  box-shadow: inset 0 0 0 1px rgb(155 232 168 / 0.22);
+}
+:root[data-theme="dark"] [class*="bg-[#203e35]"] { background-color: #0f1d12 !important; }
+:root[data-theme="dark"] [class*="border-[#3c574b]"] { border-color: rgb(155 232 168 / 0.22) !important; }
+:root[data-theme="dark"] .slip { background: #0a100b; box-shadow: inset 0 0 0 1px rgb(155 232 168 / 0.22); }
+
+/*
+  ── M06's conversation ──────────────────────────────────────────────────────
+  Rules the Mock module ships in its own `ui/theme.css` (not loaded here): the
+  interviewer speaks in the page's voice at question size; the student's own
+  words are inset behind a rule and quieter; three dots while a line is being
+  written; the small status dot.
+*/
+@layer components {
+  .turn-interviewer {
+    @apply text-question text-ink;
+  }
+  .turn-candidate {
+    @apply border-l-2 border-line-strong pl-4 text-[0.95rem] leading-relaxed text-ink-soft;
+  }
+  .thinking-dot {
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-session-thinking;
+    animation: thinking 1.4s ease-in-out infinite;
+  }
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes thinking {
+    0%, 100% { opacity: 0.25; transform: translateY(0); }
+    50% { opacity: 1; transform: translateY(-2px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .thinking-dot { animation: none; opacity: 0.6; }
+  }
+  .status-dot { @apply inline-block h-2 w-2 shrink-0 rounded-full; }
 }

@@ -1,7 +1,8 @@
 /**
  * Light or dark, one setting for the page.
  *
- * Dark is the default (2026-10-03): it is how the products students already
+ * Light is the default (the Figma design); dark stays a first-class choice.
+ * It was dark until the Figma design: (2026-10-03): it is how the products students already
  * think of as premium present themselves (Linear, Vercel, Raycast), and the
  * dark token set was designed alongside the light one, not inverted from it.
  * Light stays a first-class choice — a projector in a bright room wants it —
@@ -16,9 +17,9 @@ const listeners = new Set<() => void>();
 
 function read(): Theme {
   try {
-    return localStorage.getItem(KEY) === "light" ? "light" : "dark";
+    return localStorage.getItem(KEY) === "dark" ? "dark" : "light";
   } catch {
-    return "dark";
+    return "light";
   }
 }
 

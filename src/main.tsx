@@ -46,17 +46,19 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { MODULES, api, candidateIdOf, canReview, isStaff, useSession } from "@ai/core";
 import { m01Routes } from "@ai/m01";
 import { m02Routes } from "@ai/m02";
+import { m03Routes } from "@ai/m03";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
 import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m11Routes } from "@ai/m11";
 import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
-import { CounselNudge, m16Routes } from "@ai/m16";
+import { NotesCounsel, m16Routes } from "@ai/m16";
 import { m20Routes } from "@ai/m20";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Answers } from "./pages/Answers";
 import { QuestionReview } from "./pages/QuestionReview";
+import { GroupDiscussion } from "./pages/GroupDiscussion";
 import { Help } from "./pages/Help";
 import { History } from "./pages/History";
 import { Home } from "./pages/Home";
@@ -71,6 +73,8 @@ import { initTheme } from "./lib/theme";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
 // must render the same page (see theme.css).
+import "@fontsource-variable/inter";
+import "@fontsource/lora/400-italic.css";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 // One stylesheet, one token set. See theme.css for why none of the module
@@ -98,6 +102,8 @@ const STUDENT_NAV: FrameNavGroup[] = [
     items: [
       TODAY,
       { to: "/mock", label: "Mock interview", icon: "mic" },
+      // M14, framed from its own app (pages/GroupDiscussion.tsx).
+      { to: "/gd", label: "Group discussion", icon: "users" },
       // M20: examined on your own course material — a lab exam, a viva voce.
       { to: "/viva", label: "Viva practice", icon: "student" },
     ],
@@ -107,7 +113,7 @@ const STUDENT_NAV: FrameNavGroup[] = [
     items: [
       // M16 (2026-10-29): the talk after the report card — someone going
       // through how it went, what to work on, and holding you to a plan.
-      { to: "/counsel", label: "Your counselor", icon: "compass" },
+      { to: "/counsel", label: "Your mentor", icon: "compass" },
       // A student's "evaluation" is their own marked answers (2026-10-04).
       // M13's bench, which this used to open, is a staff tool now.
       { to: "/answers", label: "My answers", icon: "target", match: "/turns" },
@@ -127,6 +133,7 @@ const STUDENT_NAV: FrameNavGroup[] = [
       JD,
       { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
       LIBRARY,
+      { to: "/github", label: "GitHub projects", icon: "gitBranch" },
     ],
   },
 ];
@@ -320,13 +327,14 @@ function AppCrashed() {
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M15", "M16", "M20"]);
+const BUILT = new Set(["M01", "M02", "M03", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M16", "M20"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
-  After an interview, the counselor's talk (M16) floats over the notes — and
-  only once the interview has ENDED: the room and its notes share one path,
-  and a card during a live interview would pull the student out of the room.
+  After an interview, the mentor (M16) floats over the notes — the talk when
+  one is due, and "go through these notes with me" — and only once the
+  interview has ENDED: the room and its notes share one path, and a card
+  during a live interview would pull the student out of the room.
 */
 function AfterInterviewNudge() {
   const location = useLocation();
@@ -338,7 +346,7 @@ function AfterInterviewNudge() {
     refetchInterval: (query) => (query.state.data?.status === "ended" ? false : 5000),
   });
   if (!sid || status.data?.status !== "ended") return null;
-  return <CounselNudge variant="float" />;
+  return <NotesCounsel sessionId={sid} />;
 }
 
 /*
@@ -462,6 +470,10 @@ function App() {
         {/* M15's "Practise this now" hands a topic to /practice; here that is
             M06's focused interview on it (pages/Practice.tsx). */}
         <Route path="/practice" element={<Practice />} />
+        {/* M14 is a Next.js app with its own backend: framed, not mounted.
+            /m14 is the registry's path for it, kept as a way in. */}
+        <Route path="/gd" element={<GroupDiscussion />} />
+        <Route path="/m14" element={<Navigate to="/gd" replace />} />
 
         {/* Every module mounts whole. M01 and M02 used to claim the index, so
             only two of their screens were mounted by name and every other page
@@ -470,6 +482,7 @@ function App() {
             live at /resume and /jd in both places. */}
         {m01Routes}
         {m02Routes}
+        {m03Routes}
         {m04Routes}
         {m06Routes}
         {m11Routes}

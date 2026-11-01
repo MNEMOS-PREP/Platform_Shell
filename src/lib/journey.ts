@@ -111,5 +111,6 @@ export const BACKENDS = [
   { id: "m05", label: "M05 · Question Intelligence", port: 8105 },
   { id: "m06", label: "M06 · Mock Interview Engine", port: 8106 },
   { id: "m13", label: "M13 · Evaluation Engine", port: 8113 },
+  { id: "m14", label: "M14 · GD Arena", port: 8114 },
   { id: "m15", label: "M15 · Company Guider", port: 8115 },
 ] as const;
