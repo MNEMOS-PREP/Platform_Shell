@@ -173,12 +173,7 @@ export function Flame({ lit, size = 14 }: { lit: boolean; size?: number }) {
 function Logo() {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-3">
-      <span
-        aria-hidden
-        className="bg-brand-gradient grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-glow"
-      >
-        <Icon name="sparkles" size={18} />
-      </span>
+      <img src="/logo.png" alt="" aria-hidden className="h-9 w-auto shrink-0" />
       <span className="min-w-0">
         <span className="block truncate text-[0.9375rem] font-semibold tracking-tight text-rail-ink">
           AI Interviewer

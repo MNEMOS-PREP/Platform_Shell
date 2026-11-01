@@ -46,6 +46,7 @@ import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-quer
 import { MODULES, api, candidateIdOf, canReview, isStaff, useSession } from "@ai/core";
 import { m01Routes } from "@ai/m01";
 import { m02Routes } from "@ai/m02";
+import { m03Routes } from "@ai/m03";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
 import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
 import { m11Routes } from "@ai/m11";
@@ -72,6 +73,8 @@ import { initTheme } from "./lib/theme";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
 // must render the same page (see theme.css).
+import "@fontsource-variable/inter";
+import "@fontsource/lora/400-italic.css";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/geist-mono";
 // One stylesheet, one token set. See theme.css for why none of the module
@@ -130,6 +133,7 @@ const STUDENT_NAV: FrameNavGroup[] = [
       JD,
       { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
       LIBRARY,
+      { to: "/github", label: "GitHub projects", icon: "gitBranch" },
     ],
   },
 ];
@@ -323,7 +327,7 @@ function AppCrashed() {
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M16", "M20"]);
+const BUILT = new Set(["M01", "M02", "M03", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M16", "M20"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
@@ -478,6 +482,7 @@ function App() {
             live at /resume and /jd in both places. */}
         {m01Routes}
         {m02Routes}
+        {m03Routes}
         {m04Routes}
         {m06Routes}
         {m11Routes}
