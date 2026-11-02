@@ -921,3 +921,15 @@
   }
   .status-dot { @apply inline-block h-2 w-2 shrink-0 rounded-full; }
 }
+
+/* Dark mode is flat: no washes, sheens or glows, just black and solid surfaces. */
+:root[data-theme="dark"] body { background: var(--color-canvas); background-image: none; }
+:root[data-theme="dark"] .panel { background-image: none; }
+:root[data-theme="dark"] .blur-3xl,
+:root[data-theme="dark"] .bg-grid { display: none; }
+:root[data-theme="dark"] [class*="bg-gradient-to"],
+:root[data-theme="dark"] [class*="from-brand"] { background-image: none; }
+:root[data-theme="dark"] {
+  --shadow-glow: 0 0 0 0 transparent;
+  --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.8);
+}
