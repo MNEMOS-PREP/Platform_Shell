@@ -12,7 +12,9 @@
               shell must equal it (see m04-repo-locations in the project notes).
       Port    from `base_url`.
       Bat     the module's single-module launcher: its one start_*.bat that is
-              not start_all.bat. Every module ships exactly one.
+              not start_all.bat. Every module ships exactly one - except one
+              whose folder holds only its plan (a repo on its todo branch), and
+              then this is $null and start.bat says so instead of failing.
       Python  its virtualenv's python, Backend\.venv or the repo's .venv.
       Seed    Backend\seed.py, if the module ships demo data.
       Model   whether it calls a model: it ships a Backend\backend_*\llm.py.
@@ -49,7 +51,7 @@ function Get-PlatformModules {
             Label  = $dep.name
             Folder = $folder
             Dir    = $dir
-            Bat    = $(if ($bat) { $bat.Name } else { 'start_<module>.bat' })
+            Bat    = $(if ($bat) { $bat.Name } else { $null })
             Port   = ([Uri] $dep.base_url).Port
             Python = $python
             Seed   = $(if (Test-Path $seed) { $seed } else { $null })

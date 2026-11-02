@@ -139,6 +139,13 @@ Write-Host ''
 # -- modules ----------------------------------------------------------------
 
 foreach ($m in $modules) {
+    if (-not $m.Bat) {
+        # A module with no launcher (its repo checked out on todo, with only the
+        # plan): say so and go on. A made-up file name here made Test-Path throw
+        # 'Illegal characters in path' and stopped the whole platform starting.
+        Write-Host ('  [MISSING] {0}  no start_*.bat in ..\{1} (only its plan? check out its code branch)' -f $m.Id, $m.Folder) -ForegroundColor Red
+        continue
+    }
     $dir = Join-Path $parent $m.Folder
     $bat = Join-Path $dir $m.Bat
 
