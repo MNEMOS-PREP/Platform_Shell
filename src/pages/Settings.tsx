@@ -33,7 +33,7 @@ import { dailyReminderIcs, downloadIcs } from "../lib/goals";
 import { GOAL_OPTIONS, writeGoal } from "../lib/practice";
 import { CoursePicker } from "../ui/CoursePicker";
 import { DrivePicker } from "../ui/DrivePicker";
-import { AccentPanel } from "../ui/AccentPicker";
+import { AccentPanel, PalettePanel } from "../ui/AccentPicker";
 
 function Section({
   id,
@@ -306,8 +306,11 @@ export function Settings() {
             </div>
           </Section>
 
-          <Section id="appearance" title="Appearance" sub="Pick the colour of buttons and highlights.">
-            <AccentPanel />
+          <Section id="appearance" title="Appearance" sub="Pick a theme, and the colour of buttons and highlights.">
+            <div className="space-y-6">
+              <PalettePanel />
+              <AccentPanel />
+            </div>
           </Section>
 
           <Section id="voice" title="Voice" sub="The interviewer reads each question aloud; every line is on screen too.">

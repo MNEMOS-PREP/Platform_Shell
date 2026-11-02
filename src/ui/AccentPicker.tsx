@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { PALETTES, setPalette, usePalette } from "../lib/palette";
 import {
   DEFAULT_ACCENT,
   PRESETS,
@@ -123,9 +124,47 @@ function Picker() {
   );
 }
 
+/** The themes: a small preview of each, and its name. */
+export function PalettePanel() {
+  const current = usePalette();
+  return (
+    <div>
+      <p className="text-sm font-medium text-ink">Theme</p>
+      <p className="mt-0.5 text-xs text-ink-faint">The background, cards and text. Works with light or dark.</p>
+      <div className="mt-3 grid grid-cols-5 gap-2" role="radiogroup" aria-label="Theme">
+        {PALETTES.map((p) => {
+          const on = p.key === current;
+          return (
+            <button
+              key={p.key}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              aria-label={`${p.label}: ${p.note}`}
+              title={`${p.label}: ${p.note}`}
+              onClick={() => setPalette(p.key)}
+              className="group flex flex-col items-center gap-1.5 text-[0.6875rem] text-ink-soft hover:text-ink"
+            >
+              <span
+                className={`relative grid h-11 w-full place-items-center overflow-hidden rounded-lg border transition-transform group-hover:scale-105 ${on ? "border-ink ring-2 ring-ink ring-offset-2 ring-offset-surface" : "border-line-strong"}`}
+                style={{ background: p.bg }}
+              >
+                <span aria-hidden className="absolute bottom-1.5 left-1.5 h-1.5 w-5 rounded-full" style={{ background: p.ink }} />
+                <span aria-hidden className="absolute top-1.5 right-1.5 size-3 rounded-full" style={{ background: p.brand }} />
+              </span>
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** The swatches, and the custom picker behind "+". */
 export function AccentPanel() {
   const accent = useAccent();
+  const themeBrand = PALETTES.find((p) => p.key === usePalette())?.brand ?? DEFAULT_ACCENT;
   const isPreset = PRESETS.some((p) => (p.hex ?? null) === accent);
   const [custom, setCustom] = useState(!isPreset && accent !== null);
 
@@ -142,14 +181,14 @@ export function AccentPanel() {
               type="button"
               role="radio"
               aria-checked={on}
-              aria-label={p.name}
-              title={p.name}
+              aria-label={p.hex ? p.name : "Theme colour (default)"}
+              title={p.hex ? p.name : "Theme colour (default)"}
               onClick={() => {
                 setCustom(false);
                 setAccent(p.hex);
               }}
               className={`size-9 rounded-full transition-transform hover:scale-110 ${on ? "ring-2 ring-ink ring-offset-2 ring-offset-surface" : ""}`}
-              style={{ background: p.hex ?? DEFAULT_ACCENT }}
+              style={{ background: p.hex ?? themeBrand }}
             />
           );
         })}
@@ -170,7 +209,7 @@ export function AccentPanel() {
       {custom && <Picker />}
       {accent && (
         <button type="button" onClick={() => { setCustom(false); setAccent(null); }} className="mt-3 text-xs text-ink-soft underline-offset-2 hover:text-ink hover:underline">
-          Back to the platform green
+          Back to the theme colour
         </button>
       )}
     </div>
@@ -215,7 +254,10 @@ export function AccentButton() {
       </button>
       {open && (
         <div role="dialog" aria-label="Accent colour" className="absolute right-0 top-11 z-50 w-[19rem] rounded-2xl border border-line bg-surface p-4 shadow-raised">
-          <AccentPanel />
+          <PalettePanel />
+          <div className="mt-5 border-t border-line pt-4">
+            <AccentPanel />
+          </div>
         </div>
       )}
     </div>
