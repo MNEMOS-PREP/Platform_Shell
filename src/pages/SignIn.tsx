@@ -107,7 +107,7 @@ export function SignIn() {
     <div className="flex items-center gap-3">
       <img src="/logo.png" alt="" aria-hidden className="h-11 w-auto" />
       <span>
-        <span className="block font-semibold tracking-tight text-ink">AI Interviewer</span>
+        <span className="brand-name block font-semibold tracking-tight text-ink">AI Interviewer</span>
         <span className="block text-xs text-ink-faint">Placement prep that shows its work</span>
       </span>
     </div>

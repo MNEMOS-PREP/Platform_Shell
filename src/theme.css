@@ -190,22 +190,22 @@
        the brightest thing on a dark screen. */
     --color-rail: #000000;
     --color-rail-line: rgb(74 222 128 / 0.2);
-    --color-rail-ink: #86efac;
-    --color-rail-ink-soft: #4ade80;
+    --color-rail-ink: #bbf7d0;
+    --color-rail-ink-soft: #86efac;
     --color-rail-hover: rgb(74 222 128 / 0.1);
     --color-rail-active: rgb(74 222 128 / 0.18);
 
-    --color-ink: #86efac;
-    --color-ink-soft: #4ade80;
+    --color-ink: #bbf7d0;
+    --color-ink-soft: #86efac;
     /* 0.615 → 0.66 (2026-10-04, axe): faint text sat at 4.0:1 on the
        tinted panels (green "what a strong answer covers", amber notices). */
-    --color-ink-faint: #34b866;
+    --color-ink-faint: #4ade80;
 
     --color-brand: #9be8a8;
     /* Brand as TEXT. The fill reads well behind white, but as a link or label
        on a dark surface it measured 3.6:1 on brand-soft and 4.1:1 on surface;
        this lighter step is 6:1+ on both. */
-    --color-brand-ink: #86efac;
+    --color-brand-ink: #bbf7d0;
     /* Core's dark on-brand is near-black, for core's lighter dark brand; on
        this brand it measured 4.17:1. White is 4.6:1. */
     --color-on-brand: #04180b;
@@ -941,3 +941,23 @@
 :root[data-theme="dark"] [class*="border-[#3c574b]"] { border-color: rgb(74 222 128 / 0.3) !important; }
 :root[data-theme="dark"] { color-scheme: dark; }
 :root[data-theme="dark"] body { background: #000000; }
+
+/* The name beside the logo: bold, and a deeper green than the text around it. */
+.brand-name { font-weight: 700; letter-spacing: -0.01em; }
+:root[data-theme="dark"] .brand-name { color: #22c55e; }
+
+/* A slight hover: things that can be pressed lift a hair and brighten, nothing jumps. */
+@media (hover: hover) {
+  aside nav a { transition: background-color 160ms, color 160ms, transform 160ms; }
+  aside nav a:hover { transform: translateX(2px); }
+  a.panel, button.panel, a.choice, button.choice { transition: border-color 160ms, transform 160ms, box-shadow 160ms; }
+  a.panel:hover, button.panel:hover { transform: translateY(-1px); border-color: var(--color-brand-line); }
+  button.bg-brand:not(:disabled):hover, a.bg-brand:hover, .start-plan:not(:disabled):hover { transform: translateY(-1px); }
+  header a:hover, header button:hover { color: var(--color-ink); }
+}
+:root[data-theme="dark"] aside nav a:hover { background-color: rgb(74 222 128 / 0.12); color: var(--color-rail-ink); }
+:root[data-theme="dark"] button.bg-brand:not(:disabled):hover,
+:root[data-theme="dark"] a.bg-brand:hover { background-color: #b6f2c0; }
+@media (prefers-reduced-motion: reduce) {
+  aside nav a:hover, a.panel:hover, button.panel:hover, button.bg-brand:hover, .start-plan:hover { transform: none; }
+}
