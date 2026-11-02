@@ -47,6 +47,7 @@ import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
 import { readEmail, writeEmail } from "../lib/account";
 import { currentStreak, practiceDays } from "../lib/practice";
 import { toggleTheme, useTheme } from "../lib/theme";
+import { AccentButton } from "./AccentPicker";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
 import { ShortcutsDialog, useShortcuts } from "./Shortcuts";
 import { TopProgress } from "./TopProgress";
@@ -595,6 +596,7 @@ export function Frame({
                   <Icon name="search" size={17} />
                 </button>
                 {candidateIdOf(session) && <StreakChip />}
+                <AccentButton />
                 <ThemeToggle />
                 {session && (
                   <Link

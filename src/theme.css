@@ -836,7 +836,7 @@
 
   /* The start button on that panel: mint. */
   .start-plan {
-    background: #c9f4c8;
+    background: var(--accent-light, #c9f4c8);
     color: #192d28;
     border: 1px solid transparent;
     transition: filter 160ms, transform 160ms;
@@ -961,3 +961,42 @@
 @media (prefers-reduced-motion: reduce) {
   aside nav a:hover, a.panel:hover, button.panel:hover, button.bg-brand:hover, .start-plan:hover { transform: none; }
 }
+
+/*
+  ── The student's accent colour ─────────────────────────────────────────────
+  `lib/accent.ts` sets one colour (and the text that sits on it); the rest of the
+  family is derived here, so any choice stays readable. Absent means the
+  platform's own green, untouched.
+*/
+:root[data-accent] {
+  --color-brand: var(--accent-user);
+  --color-brand-ink: var(--accent-user);
+  --color-on-brand: var(--accent-on);
+  --color-brand-hover: color-mix(in oklch, var(--accent-user) 86%, #000);
+  --color-brand-soft: color-mix(in oklch, var(--accent-user) 10%, var(--color-surface));
+  --color-brand-line: color-mix(in oklch, var(--accent-user) 32%, var(--color-surface));
+  --color-accent: color-mix(in oklch, var(--accent-user) 70%, #fff);
+  --accent-light: color-mix(in oklch, var(--accent-user) 36%, #fff);
+  --shadow-glow: 0 6px 20px -8px color-mix(in oklch, var(--accent-user) 40%, transparent);
+}
+:root[data-accent][data-theme="dark"] {
+  --color-brand: var(--accent-dark);
+  --color-brand-ink: var(--accent-dark);
+  --color-on-brand: var(--accent-dark-on);
+  --color-brand-hover: color-mix(in oklch, var(--accent-dark) 86%, #fff);
+  --color-brand-soft: color-mix(in oklch, var(--accent-dark) 12%, #000);
+  --color-brand-line: color-mix(in oklch, var(--accent-dark) 38%, #000);
+  --accent-light: color-mix(in oklch, var(--accent-dark) 80%, #fff);
+  --shadow-glow: 0 0 0 0 transparent;
+}
+:root[data-accent] button.bg-brand,
+:root[data-accent] a.bg-brand,
+:root[data-accent] button[class*="bg-brand"]:not([class*="bg-brand-"]) { color: var(--color-on-brand); }
+:root[data-accent][data-theme="dark"] button.bg-brand:not(:disabled):hover,
+:root[data-accent][data-theme="dark"] a.bg-brand:hover { background-color: var(--color-brand-hover); }
+:root[data-accent] .start-plan { color: var(--accent-on); }
+:root[data-accent][data-theme="dark"] .start-plan { color: var(--accent-dark-on); }
+:root[data-accent][data-theme="dark"] .brand-name { color: var(--accent-dark); }
+
+/* On a light page, small text in the accent uses its darkened shade so a pale accent stays readable. */
+:root[data-accent]:not([data-theme="dark"]) .text-brand { color: var(--accent-text); }
