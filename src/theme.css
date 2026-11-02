@@ -181,37 +181,37 @@
     color-scheme: dark;
 
     --color-canvas: #000000;
-    --color-surface: #0a100b;
-    --color-surface-sunken: #050805;
-    --color-line: rgb(155 232 168 / 0.16);
-    --color-line-strong: rgb(155 232 168 / 0.3);
+    --color-surface: #000000;
+    --color-surface-sunken: #000000;
+    --color-line: rgb(74 222 128 / 0.22);
+    --color-line-strong: rgb(74 222 128 / 0.4);
 
     /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
        the brightest thing on a dark screen. */
     --color-rail: #000000;
-    --color-rail-line: rgb(155 232 168 / 0.14);
-    --color-rail-ink: #d4f5d6;
-    --color-rail-ink-soft: #9fd4a8;
-    --color-rail-hover: rgb(155 232 168 / 0.08);
-    --color-rail-active: rgb(155 232 168 / 0.15);
+    --color-rail-line: rgb(74 222 128 / 0.2);
+    --color-rail-ink: #86efac;
+    --color-rail-ink-soft: #4ade80;
+    --color-rail-hover: rgb(74 222 128 / 0.1);
+    --color-rail-active: rgb(74 222 128 / 0.18);
 
-    --color-ink: #d4f5d6;
-    --color-ink-soft: #a3d9ab;
+    --color-ink: #86efac;
+    --color-ink-soft: #4ade80;
     /* 0.615 → 0.66 (2026-10-04, axe): faint text sat at 4.0:1 on the
        tinted panels (green "what a strong answer covers", amber notices). */
-    --color-ink-faint: #7cb987;
+    --color-ink-faint: #34b866;
 
     --color-brand: #9be8a8;
     /* Brand as TEXT. The fill reads well behind white, but as a link or label
        on a dark surface it measured 3.6:1 on brand-soft and 4.1:1 on surface;
        this lighter step is 6:1+ on both. */
-    --color-brand-ink: #b9f2c0;
+    --color-brand-ink: #86efac;
     /* Core's dark on-brand is near-black, for core's lighter dark brand; on
        this brand it measured 4.17:1. White is 4.6:1. */
     --color-on-brand: #04180b;
     --color-brand-hover: #b6f2c0;
-    --color-brand-soft: #0d2214;
-    --color-brand-line: #2d6a3e;
+    --color-brand-soft: #04140a;
+    --color-brand-line: #1f6b3a;
     --color-accent: #8dcba4;
 
     --shadow-card: 0 0 0 0 transparent;
@@ -933,3 +933,11 @@
   --shadow-glow: 0 0 0 0 transparent;
   --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.8);
 }
+
+/* Absolute black: the deep panels the modules draw inline are black too, edged in green. */
+:root[data-theme="dark"] [class*="bg-[#142d27]"],
+:root[data-theme="dark"] .slip { background-color: #000000 !important; box-shadow: inset 0 0 0 1px rgb(74 222 128 / 0.3); }
+:root[data-theme="dark"] [class*="bg-[#203e35]"] { background-color: #030a05 !important; }
+:root[data-theme="dark"] [class*="border-[#3c574b]"] { border-color: rgb(74 222 128 / 0.3) !important; }
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="dark"] body { background: #000000; }
