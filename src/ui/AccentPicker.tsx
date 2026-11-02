@@ -5,6 +5,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { BUTTON_STYLES, setButtons, useButtons } from "../lib/buttons";
 import { PALETTES, setPalette, usePalette } from "../lib/palette";
 import {
   DEFAULT_ACCENT,
@@ -131,7 +132,7 @@ export function PalettePanel() {
     <div>
       <p className="text-sm font-medium text-ink">Theme</p>
       <p className="mt-0.5 text-xs text-ink-faint">The background, cards and text. Works with light or dark.</p>
-      <div className="mt-3 grid grid-cols-5 gap-2" role="radiogroup" aria-label="Theme">
+      <div className="mt-3 grid grid-cols-5 gap-x-2 gap-y-3" role="radiogroup" aria-label="Theme">
         {PALETTES.map((p) => {
           const on = p.key === current;
           return (
@@ -153,6 +154,46 @@ export function PalettePanel() {
                 <span aria-hidden className="absolute top-1.5 right-1.5 size-3 rounded-full" style={{ background: p.brand }} />
               </span>
               {p.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** The shape of the main buttons, shown as a small button in each shape. */
+export function ButtonStylePanel() {
+  const current = useButtons();
+  const radius: Record<string, string> = { rounded: "8px", pill: "999px", square: "2px", outline: "8px", soft: "8px" };
+  return (
+    <div>
+      <p className="text-sm font-medium text-ink">Buttons</p>
+      <p className="mt-0.5 text-xs text-ink-faint">The shape of the main buttons.</p>
+      <div className="mt-3 grid grid-cols-5 gap-2" role="radiogroup" aria-label="Button style">
+        {BUTTON_STYLES.map((b) => {
+          const on = b.key === current;
+          const fill = b.key === "outline" ? "transparent" : b.key === "soft" ? "var(--color-brand-soft)" : "var(--color-brand)";
+          const text = b.key === "outline" ? "var(--color-brand)" : b.key === "soft" ? "var(--color-brand-ink)" : "var(--color-on-brand)";
+          return (
+            <button
+              key={b.key}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setButtons(b.key)}
+              className="group flex flex-col items-center gap-1.5 text-[0.6875rem] text-ink-soft hover:text-ink"
+            >
+              <span
+                className={`grid h-11 w-full place-items-center rounded-lg border bg-surface transition-transform group-hover:scale-105 ${on ? "border-ink ring-2 ring-ink ring-offset-2 ring-offset-surface" : "border-line-strong"}`}
+              >
+                <span
+                  aria-hidden
+                  className="h-5 w-9"
+                  style={{ background: fill, borderRadius: radius[b.key], boxShadow: b.key === "outline" ? "inset 0 0 0 1.5px var(--color-brand)" : undefined, color: text }}
+                />
+              </span>
+              {b.label}
             </button>
           );
         })}
@@ -254,9 +295,14 @@ export function AccentButton() {
       </button>
       {open && (
         <div role="dialog" aria-label="Accent colour" className="absolute right-0 top-11 z-50 w-[19rem] rounded-2xl border border-line bg-surface p-4 shadow-raised">
-          <PalettePanel />
-          <div className="mt-5 border-t border-line pt-4">
-            <AccentPanel />
+          <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1">
+            <PalettePanel />
+            <div className="border-t border-line pt-4">
+              <ButtonStylePanel />
+            </div>
+            <div className="border-t border-line pt-4">
+              <AccentPanel />
+            </div>
           </div>
         </div>
       )}

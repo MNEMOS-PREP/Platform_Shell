@@ -78,7 +78,10 @@ function luminance([r, g, b]: RGB): number {
 
 /** Text on a fill of this colour: dark on light colours, white on dark ones. */
 function onColour(rgb: RGB): string {
-  return luminance(rgb) > 0.4 ? "#0b1a12" : "#ffffff";
+  const l = luminance(rgb);
+  const white = 1.05 / (l + 0.05);
+  const dark = (l + 0.05) / (0.008 + 0.05);
+  return white >= dark ? "#ffffff" : "#0b1a12";
 }
 
 /** Small text in the accent on a light page: darken light colours until they can be read. */
@@ -148,6 +151,10 @@ export function initAccent(): void {
 function subscribe(l: () => void): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
+}
+
+export function subscribeAccent(l: () => void): () => void {
+  return subscribe(l);
 }
 
 export function useAccent(): string | null {

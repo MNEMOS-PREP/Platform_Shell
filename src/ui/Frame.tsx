@@ -174,7 +174,7 @@ export function Flame({ lit, size = 14 }: { lit: boolean; size?: number }) {
 function Logo() {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-3">
-      <img src="/logo.png" alt="" aria-hidden className="h-9 w-auto shrink-0" />
+      <img src="/logo.png" alt="" aria-hidden className="logo-themed h-9 w-auto shrink-0" />
       <span className="min-w-0">
         <span className="brand-name block truncate text-[0.9375rem] font-semibold tracking-tight text-rail-ink">
           AI Interviewer

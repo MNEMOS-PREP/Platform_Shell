@@ -9,7 +9,7 @@ import { useSyncExternalStore } from "react";
 const KEY = "ai.palette";
 const listeners = new Set<() => void>();
 
-export type PaletteKey = "forest" | "slate" | "sand" | "rose" | "mono";
+export type PaletteKey = "forest" | "slate" | "sand" | "rose" | "mono" | "dracula" | "nord" | "tokyo" | "monokai" | "solarized";
 
 export const PALETTES: { key: PaletteKey; label: string; note: string; bg: string; ink: string; brand: string }[] = [
   { key: "forest", label: "Forest", note: "The platform's own", bg: "#f7f8f4", ink: "#192d28", brand: "#176b55" },
@@ -17,6 +17,11 @@ export const PALETTES: { key: PaletteKey; label: string; note: string; bg: strin
   { key: "sand", label: "Sand", note: "Warm paper", bg: "#faf6ef", ink: "#2b2218", brand: "#b45309" },
   { key: "rose", label: "Rose", note: "Soft and bright", bg: "#fbf5f6", ink: "#2d1a20", brand: "#be185d" },
   { key: "mono", label: "Mono", note: "Black and white", bg: "#f6f6f6", ink: "#111111", brand: "#111111" },
+  { key: "dracula", label: "Dracula", note: "Purple and pink on charcoal", bg: "#fffbeb", ink: "#1f1f1f", brand: "#644ac9" },
+  { key: "nord", label: "Nord", note: "Arctic blues", bg: "#eceff4", ink: "#2e3440", brand: "#5e81ac" },
+  { key: "tokyo", label: "Tokyo Night", note: "Deep indigo", bg: "#e1e2e7", ink: "#343b58", brand: "#34548a" },
+  { key: "monokai", label: "Monokai", note: "Olive with lime", bg: "#faf9f5", ink: "#272822", brand: "#6a9a0a" },
+  { key: "solarized", label: "Solarized", note: "Teal and cream", bg: "#fdf6e3", ink: "#073642", brand: "#268bd2" },
 ];
 
 function read(): PaletteKey {
@@ -60,6 +65,10 @@ export function initPalette(): void {
 function subscribe(l: () => void): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
+}
+
+export function subscribePalette(l: () => void): () => void {
+  return subscribe(l);
 }
 
 export function usePalette(): PaletteKey {
