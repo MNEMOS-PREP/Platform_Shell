@@ -18,7 +18,7 @@
       "@ai/core": ["../Platform_Core/src/index.ts"],
       "@ai/m01": ["../resume-ingestion/Frontend/frontend_M01_Resume_Ingestion/src/index.ts"],
       "@ai/m02": ["../jd-parser-coverage/Frontend/frontend_M02_JD_Parser/src/index.ts"],
-      "@ai/m03": ["../GitHub_Analyzer/Frontend/frontend_M03_GitHub_Analyzer/src/index.ts"],
+      "@ai/m03": ["../GitHub_Analyzer/Frontend/frontend_M03_GitHub_Analyzer/src/index.ts", "./src/stubs/m03.tsx"],
       "@ai/m04": ["../Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"],
       "@ai/m06": ["../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"],
       "@ai/m11": ["../Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"],
