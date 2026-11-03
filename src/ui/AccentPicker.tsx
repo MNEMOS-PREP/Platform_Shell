@@ -205,7 +205,11 @@ export function ButtonStylePanel() {
 /** The swatches, and the custom picker behind "+". */
 export function AccentPanel() {
   const accent = useAccent();
-  const themeBrand = PALETTES.find((p) => p.key === usePalette())?.brand ?? DEFAULT_ACCENT;
+  // A hook runs once per render: inside find() it ran once per theme until the
+  // match, so changing theme changed the hook count and React threw
+  // "Rendered more hooks than during the previous render".
+  const palette = usePalette();
+  const themeBrand = PALETTES.find((p) => p.key === palette)?.brand ?? DEFAULT_ACCENT;
   const isPreset = PRESETS.some((p) => (p.hex ?? null) === accent);
   const [custom, setCustom] = useState(!isPreset && accent !== null);
 
