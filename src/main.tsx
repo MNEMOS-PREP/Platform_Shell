@@ -75,6 +75,7 @@ import { initButtons } from "./lib/buttons";
 import { initLogoTint } from "./lib/logoTint";
 import { initPalette } from "./lib/palette";
 import { initTheme } from "./lib/theme";
+import { DsaRoadmap } from "./pages/DsaRoadmap";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
 // must render the same page (see theme.css).
@@ -126,6 +127,8 @@ const STUDENT_NAV: FrameNavGroup[] = [
       // interview marked worth another go — practised again from there.
       { to: "/mock/library", label: "Question library", icon: "star" },
       { to: "/skills", label: "Skill graph", icon: "graph" },
+      // M07 (2026-11-03): the whole of DSA as a route map, mapped to the student's syllabus.
+      { to: "/roadmap", label: "DSA roadmap", icon: "code" },
       // M20: how a student answers and speaks across their vivas (2026-10-29).
       { to: "/viva/progress", label: "Viva progress", icon: "chart" },
       { to: "/history", label: "History", icon: "clock" },
@@ -501,6 +504,7 @@ function App() {
         {/* M15's "Practise this now" hands a topic to /practice; here that is
             M06's focused interview on it (pages/Practice.tsx). */}
         <Route path="/practice" element={<Practice />} />
+        <Route path="/roadmap" element={<DsaRoadmap />} />
         {/* M14 is a Next.js app with its own backend: framed, not mounted.
             /m14 is the registry's path for it, kept as a way in. */}
         <Route path="/gd" element={<GroupDiscussion />} />
