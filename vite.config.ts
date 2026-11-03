@@ -42,6 +42,8 @@ const API = {
   m16: 8116,
   m20: 8120,
   m21: 8121,
+  // Platform_Audit (not an M-number): the decision ledger the Audit page reads.
+  audit: 8190,
 } as const;
 type Mod = keyof typeof API;
 
@@ -183,6 +185,18 @@ for (const [mod, port] of Object.entries(API)) {
     rewrite: (p: string) => p.replace(`/sys/${mod}`, ""),
   };
 }
+
+/*
+  The audit service wants a service token on every read. The shell adds it here,
+  server-side, so the browser never holds it. The fallback is the same dev token
+  Platform-Audit's own start_audit.bat uses: localhost only.
+*/
+proxy["/sys/audit"] = {
+  target: `http://127.0.0.1:${API.audit}`,
+  changeOrigin: true,
+  rewrite: (p: string) => p.replace("/sys/audit", ""),
+  headers: { "X-Service-Token": process.env.AUDIT_SERVICE_TOKEN ?? "dev-token-change-me" },
+};
 
 /*
   `/v1/deps` is the one path every module serves - each answers "what am I
