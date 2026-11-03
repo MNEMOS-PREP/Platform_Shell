@@ -26,7 +26,7 @@ interface Session {
   open_turn_id: string | null;
   in_closing: boolean;
   transcript: Turn[];
-  plan: { segments: { kind: string; question_budget: number; dropped_reason?: string | null }[] } | null;
+  plan: { segments: { kind: string; title?: string; question_budget: number; dropped_reason?: string | null }[] } | null;
 }
 
 interface Point {
@@ -73,8 +73,12 @@ function openLine(s: Session): string {
 export function Checkpoint() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const topic = stopById(pending()?.stopId ?? "")?.name ?? "this topic";
   const [session, setSession] = useState<Session | null>(null);
+  // The topic is in the plan ("Focus: Arrays"), so it is still there once the result has been saved and the memory cleared.
+  const topic =
+    session?.plan?.segments.find((s) => s.kind !== "warmup" && s.kind !== "closing")?.title?.replace(/^Focus:\s*/, "") ||
+    stopById(pending()?.stopId ?? "")?.name ||
+    "this topic";
   const [report, setReport] = useState<Report | null>(null);
   const [answer, setAnswer] = useState("");
   const [busy, setBusy] = useState(false);
