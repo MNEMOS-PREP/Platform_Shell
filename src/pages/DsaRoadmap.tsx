@@ -13,8 +13,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { PageHeader } from "@ai/core";
-import { EMPTY_PROGRESS, Roadmap, type ProgrammeId, type Progress } from "@ai/m07";
+import { EMPTY_PROGRESS, Roadmap, type ProgrammeId, type Progress } from "../roadmap";
 
 const PROGRESS_KEY = "ai.dsaProgress";
 const PROGRAMME_KEY = "ai.programme";
@@ -59,11 +58,6 @@ export function DsaRoadmap() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Practise"
-        title="DSA roadmap"
-        subtitle="Every concept in data structures and algorithms, in the order to learn it, mapped to your syllabus."
-      />
       <Roadmap
         progress={progress}
         onChange={(update) => setProgress(update)}
