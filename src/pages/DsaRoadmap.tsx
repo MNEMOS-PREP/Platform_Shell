@@ -93,7 +93,7 @@ export function DsaRoadmap() {
     setStarting(true);
     setNotice(null);
     try {
-      navigate(`/mock/${await startCheckpoint(stop)}/plan`);
+      navigate(`/roadmap/checkpoint/${await startCheckpoint(stop)}`);
     } catch (e) {
       setNotice({ kind: "error", message: (e as Error).message || "The interview could not start." });
     } finally {
@@ -107,7 +107,7 @@ export function DsaRoadmap() {
       {notice?.kind === "running" && (
         <p className="mb-4 rounded-xl border border-brand-line bg-brand-soft px-4 py-3 text-sm text-ink">
           A checkpoint interview is in progress.{" "}
-          <Link className="font-medium text-brand" to={`/mock/${notice.sessionId}`}>
+          <Link className="font-medium text-brand" to={`/roadmap/checkpoint/${notice.sessionId}`}>
             Go back to it
           </Link>
           . When it ends, the result lands here.

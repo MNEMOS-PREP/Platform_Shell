@@ -82,6 +82,7 @@ import { useTrackTitles } from "../lib/tracks";
 import { coversLine, practisable, practiseCourseLink } from "../lib/courses";
 import { countdownLabel, daysUntil, downloadIcs, driveIcs, milestones, nextDrive } from "../lib/goals";
 import { JOURNEY, type Stage } from "../lib/journey";
+import { checkpointIds } from "../roadmap";
 import {
   GOAL_OPTIONS,
   bestStreak,
@@ -1304,7 +1305,9 @@ export function Home() {
     );
   }
 
-  const sessions = history.data ?? [];
+  // A roadmap checkpoint is learning, not a mock interview: Today's sessions are the interviews.
+  const hidden = checkpointIds();
+  const sessions = (history.data ?? []).filter((s) => !hidden.has(s.id));
   const practised = sessions.some((s) => s.started_at);
   const name = firstName(profile.data?.display_name || session?.name);
 

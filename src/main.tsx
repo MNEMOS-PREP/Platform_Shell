@@ -76,6 +76,7 @@ import { initLogoTint } from "./lib/logoTint";
 import { initPalette } from "./lib/palette";
 import { initTheme } from "./lib/theme";
 import { Audit } from "./pages/Audit";
+import { Checkpoint } from "./pages/Checkpoint";
 import { DsaRoadmap } from "./pages/DsaRoadmap";
 import { LiveCodingPage } from "./pages/LiveCodingPage";
 import { System } from "./pages/System";
@@ -513,6 +514,7 @@ function App() {
             M06's focused interview on it (pages/Practice.tsx). */}
         <Route path="/practice" element={<Practice />} />
         <Route path="/roadmap" element={<DsaRoadmap />} />
+        <Route path="/roadmap/checkpoint/:id" element={<Checkpoint />} />
         <Route path="/code" element={<LiveCodingPage />} />
         {/* M14 is a Next.js app with its own backend: framed, not mounted.
             /m14 is the registry's path for it, kept as a way in. */}

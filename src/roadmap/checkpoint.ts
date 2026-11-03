@@ -44,7 +44,31 @@ function remember(p: PendingCheckpoint | null): void {
   }
 }
 
-/** Creates the focused session and returns its id, for the caller to open. */
+const IDS_KEY = "ai.dsaCheckpointIds";
+
+/** The ids of every checkpoint session, so Mock's own lists (History) can leave them out: a checkpoint is learning. */
+export function checkpointIds(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(IDS_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function remember_id(id: string): void {
+  try {
+    localStorage.setItem(IDS_KEY, JSON.stringify([...checkpointIds(), id].slice(-200)));
+  } catch {
+    /* as above */
+  }
+}
+
+/**
+ * Creates the focused session and returns its id, for the caller to open.
+ *
+ * The session is M06's engine under a different screen: the planner's behavioural warm-up is dropped so it opens on
+ * the topic, and the closing stays (M06 keeps it: it is where the report is put together).
+ */
 export async function startCheckpoint(stop: Stop): Promise<string> {
   const label = stop.name.toLowerCase();
   const resolved = await api
@@ -57,7 +81,13 @@ export async function startCheckpoint(stop: Stop): Promise<string> {
     focus_concepts: resolved ? [resolved] : [],
     focus_label: stop.name,
   });
+  const planned = await api.post<{ plan: { segments: { index: number; kind: string }[] } | null }>(`/v1/interviews/${session.id}/plan`);
+  for (const seg of planned.plan?.segments ?? []) {
+    if (seg.kind === "warmup") await api.del(`/v1/interviews/${session.id}/plan/segments/${seg.index}`).catch(() => null);
+  }
+  await api.post(`/v1/interviews/${session.id}/start`);
   remember({ stopId: stop.id, sessionId: session.id });
+  remember_id(session.id);
   return session.id;
 }
 
