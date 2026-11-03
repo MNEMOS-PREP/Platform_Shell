@@ -69,6 +69,10 @@ import { Settings } from "./pages/Settings";
 import { SignIn } from "./pages/SignIn";
 import { Welcome } from "./pages/Welcome";
 import { countdownLabel, daysUntil } from "./lib/goals";
+import { initAccent } from "./lib/accent";
+import { initButtons } from "./lib/buttons";
+import { initLogoTint } from "./lib/logoTint";
+import { initPalette } from "./lib/palette";
 import { initTheme } from "./lib/theme";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
@@ -355,6 +359,10 @@ function AfterInterviewNudge() {
   (sign-in, signed out) fell through to the OS preference. Dark by default.
 */
 initTheme();
+initPalette();
+initAccent();
+initButtons();
+initLogoTint();
 
 const queryClient = new QueryClient({
   defaultOptions: {
