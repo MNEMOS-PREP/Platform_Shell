@@ -56,7 +56,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m03": sibling("GitHub_Analyzer/Frontend/frontend_M03_GitHub_Analyzer/src/index.ts"),
   "@ai/m04": sibling("Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"),
   "@ai/m06": sibling("Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"),
-  "@ai/m07": sibling("Live_Coding/Frontend/frontend_M07_Live_Coding/src/index.ts"),
+  "@ai/m07": sibling("Live_Coding/ui/src/index.ts"),
   "@ai/m11": sibling("Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"),
   "@ai/m13": sibling("Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"),
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
