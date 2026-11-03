@@ -181,37 +181,37 @@
     color-scheme: dark;
 
     --color-canvas: #000000;
-    --color-surface: #0a100b;
-    --color-surface-sunken: #050805;
-    --color-line: rgb(155 232 168 / 0.16);
-    --color-line-strong: rgb(155 232 168 / 0.3);
+    --color-surface: #000000;
+    --color-surface-sunken: #000000;
+    --color-line: rgb(74 222 128 / 0.22);
+    --color-line-strong: rgb(74 222 128 / 0.4);
 
     /* The rail sits BELOW canvas in dark mode. Above it, the chrome would be
        the brightest thing on a dark screen. */
     --color-rail: #000000;
-    --color-rail-line: rgb(155 232 168 / 0.14);
-    --color-rail-ink: #d4f5d6;
-    --color-rail-ink-soft: #9fd4a8;
-    --color-rail-hover: rgb(155 232 168 / 0.08);
-    --color-rail-active: rgb(155 232 168 / 0.15);
+    --color-rail-line: rgb(74 222 128 / 0.2);
+    --color-rail-ink: #bbf7d0;
+    --color-rail-ink-soft: #86efac;
+    --color-rail-hover: rgb(74 222 128 / 0.1);
+    --color-rail-active: rgb(74 222 128 / 0.18);
 
-    --color-ink: #d4f5d6;
-    --color-ink-soft: #a3d9ab;
+    --color-ink: #bbf7d0;
+    --color-ink-soft: #86efac;
     /* 0.615 → 0.66 (2026-10-04, axe): faint text sat at 4.0:1 on the
        tinted panels (green "what a strong answer covers", amber notices). */
-    --color-ink-faint: #7cb987;
+    --color-ink-faint: #4ade80;
 
     --color-brand: #9be8a8;
     /* Brand as TEXT. The fill reads well behind white, but as a link or label
        on a dark surface it measured 3.6:1 on brand-soft and 4.1:1 on surface;
        this lighter step is 6:1+ on both. */
-    --color-brand-ink: #b9f2c0;
+    --color-brand-ink: #bbf7d0;
     /* Core's dark on-brand is near-black, for core's lighter dark brand; on
        this brand it measured 4.17:1. White is 4.6:1. */
     --color-on-brand: #04180b;
     --color-brand-hover: #b6f2c0;
-    --color-brand-soft: #0d2214;
-    --color-brand-line: #2d6a3e;
+    --color-brand-soft: #04140a;
+    --color-brand-line: #1f6b3a;
     --color-accent: #8dcba4;
 
     --shadow-card: 0 0 0 0 transparent;
@@ -836,7 +836,7 @@
 
   /* The start button on that panel: mint. */
   .start-plan {
-    background: #c9f4c8;
+    background: var(--accent-light, #c9f4c8);
     color: #192d28;
     border: 1px solid transparent;
     transition: filter 160ms, transform 160ms;
@@ -921,3 +921,409 @@
   }
   .status-dot { @apply inline-block h-2 w-2 shrink-0 rounded-full; }
 }
+
+/* Dark mode is flat: no washes, sheens or glows, just black and solid surfaces. */
+:root[data-theme="dark"] body { background: var(--color-canvas); background-image: none; }
+:root[data-theme="dark"] .panel { background-image: none; }
+:root[data-theme="dark"] .blur-3xl,
+:root[data-theme="dark"] .bg-grid { display: none; }
+:root[data-theme="dark"] [class*="bg-gradient-to"],
+:root[data-theme="dark"] [class*="from-brand"] { background-image: none; }
+:root[data-theme="dark"] {
+  --shadow-glow: 0 0 0 0 transparent;
+  --shadow-raised: 0 12px 32px -16px rgb(0 0 0 / 0.8);
+}
+
+/* Absolute black: the deep panels the modules draw inline are black too, edged in green. */
+:root[data-theme="dark"] [class*="bg-[#142d27]"],
+:root[data-theme="dark"] .slip { background-color: #000000 !important; box-shadow: inset 0 0 0 1px rgb(74 222 128 / 0.3); }
+:root[data-theme="dark"] [class*="bg-[#203e35]"] { background-color: #030a05 !important; }
+:root[data-theme="dark"] [class*="border-[#3c574b]"] { border-color: rgb(74 222 128 / 0.3) !important; }
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="dark"] body { background: #000000; }
+
+/* The name beside the logo: bold, and a deeper green than the text around it. */
+.brand-name { font-weight: 700; letter-spacing: -0.01em; }
+:root[data-theme="dark"] .brand-name { color: #22c55e; }
+
+/* A slight hover: things that can be pressed lift a hair and brighten, nothing jumps. */
+@media (hover: hover) {
+  aside nav a { transition: background-color 160ms, color 160ms, transform 160ms; }
+  aside nav a:hover { transform: translateX(2px); }
+  a.panel, button.panel, a.choice, button.choice { transition: border-color 160ms, transform 160ms, box-shadow 160ms; }
+  a.panel:hover, button.panel:hover { transform: translateY(-1px); border-color: var(--color-brand-line); }
+  button.bg-brand:not(:disabled):hover, a.bg-brand:hover, .start-plan:not(:disabled):hover { transform: translateY(-1px); }
+  header a:hover, header button:hover { color: var(--color-ink); }
+}
+:root[data-theme="dark"] aside nav a:hover { background-color: rgb(74 222 128 / 0.12); color: var(--color-rail-ink); }
+:root[data-theme="dark"] button.bg-brand:not(:disabled):hover,
+:root[data-theme="dark"] a.bg-brand:hover { background-color: #b6f2c0; }
+@media (prefers-reduced-motion: reduce) {
+  aside nav a:hover, a.panel:hover, button.panel:hover, button.bg-brand:hover, .start-plan:hover { transform: none; }
+}
+
+/*
+  ── The student's accent colour ─────────────────────────────────────────────
+  `lib/accent.ts` sets one colour (and the text that sits on it); the rest of the
+  family is derived here, so any choice stays readable. Absent means the
+  platform's own green, untouched.
+*/
+:root[data-accent] {
+  --color-brand: var(--accent-user);
+  --color-brand-ink: var(--accent-user);
+  --color-on-brand: var(--accent-on);
+  --color-brand-hover: color-mix(in oklch, var(--accent-user) 86%, #000);
+  --color-brand-soft: color-mix(in oklch, var(--accent-user) 10%, var(--color-surface));
+  --color-brand-line: color-mix(in oklch, var(--accent-user) 32%, var(--color-surface));
+  --color-accent: color-mix(in oklch, var(--accent-user) 70%, #fff);
+  --accent-light: color-mix(in oklch, var(--accent-user) 36%, #fff);
+  --shadow-glow: 0 6px 20px -8px color-mix(in oklch, var(--accent-user) 40%, transparent);
+}
+:root[data-accent][data-theme="dark"] {
+  --color-brand: var(--accent-dark);
+  --color-brand-ink: var(--accent-dark);
+  --color-on-brand: var(--accent-dark-on);
+  --color-brand-hover: color-mix(in oklch, var(--accent-dark) 86%, #fff);
+  --color-brand-soft: color-mix(in oklch, var(--accent-dark) 12%, #000);
+  --color-brand-line: color-mix(in oklch, var(--accent-dark) 38%, #000);
+  --accent-light: color-mix(in oklch, var(--accent-dark) 80%, #fff);
+  --shadow-glow: 0 0 0 0 transparent;
+}
+:root[data-accent] button.bg-brand,
+:root[data-accent] a.bg-brand,
+:root[data-accent] button[class*="bg-brand"]:not([class*="bg-brand-"]) { color: var(--color-on-brand); }
+:root[data-accent][data-theme="dark"] button.bg-brand:not(:disabled):hover,
+:root[data-accent][data-theme="dark"] a.bg-brand:hover { background-color: var(--color-brand-hover); }
+:root[data-accent] .start-plan { color: var(--accent-on); }
+:root[data-accent][data-theme="dark"] .start-plan { color: var(--accent-dark-on); }
+:root[data-accent][data-theme="dark"] .brand-name { color: var(--accent-dark); }
+
+/* On a light page, small text in the accent uses its darkened shade so a pale accent stays readable. */
+:root[data-accent]:not([data-theme="dark"]) .text-brand { color: var(--accent-text); }
+
+/* ── Themes: a different set of neutrals and a matching default accent. Forest is the default (no attribute). ── */
+
+:root[data-palette="slate"] {
+  --color-canvas: #f5f7fa; --color-surface: #ffffff; --color-surface-sunken: #eceff4;
+  --color-line: #dde3ec; --color-line-strong: #c5ceda;
+  --color-ink: #14202e; --color-ink-soft: #4a5a6e; --color-ink-faint: #66768a;
+  --color-rail: #ffffff; --color-rail-line: #dde3ec; --color-rail-ink: #14202e; --color-rail-ink-soft: #4a5a6e;
+  --color-rail-hover: #eceff4; --color-rail-active: #e3e9f2;
+}
+:root[data-palette="slate"]:not([data-accent]) {
+  --color-brand: #2f5fd0; --color-brand-ink: #2f5fd0; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #2f5fd0 86%, #000);
+  --color-brand-soft: #eaf0fd; --color-brand-line: #b8c9ee; --color-accent: #7aa0ff;
+  --accent-light: color-mix(in oklch, #2f5fd0 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="slate"][data-theme="dark"] {
+  --color-canvas: #000000; --color-surface: #000000; --color-surface-sunken: #000000;
+  --color-line: rgb(143 178 255 / 0.22); --color-line-strong: rgb(143 178 255 / 0.4);
+  --color-ink: #cfe0ff; --color-ink-soft: #9db6e0; --color-ink-faint: #7d96c4;
+  --color-rail: #000000; --color-rail-line: rgb(143 178 255 / 0.22); --color-rail-ink: #cfe0ff; --color-rail-ink-soft: #9db6e0;
+  --color-rail-hover: rgb(143 178 255 / 0.1); --color-rail-active: rgb(143 178 255 / 0.18);
+}
+:root[data-palette="slate"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #8fb2ff; --color-brand-ink: #8fb2ff; --color-on-brand: #04122e;
+  --color-brand-hover: color-mix(in oklch, #8fb2ff 86%, #fff);
+  --color-brand-soft: #07122a; --color-brand-line: #2a4a8a; --color-accent: #a9c4ff;
+  --accent-light: color-mix(in oklch, #8fb2ff 80%, #fff); --accent-dark-on: #04122e;
+}
+:root[data-palette="slate"][data-theme="dark"]:not([data-accent]) .brand-name { color: #8fb2ff; }
+:root[data-palette="slate"][data-theme="dark"] aside nav a:hover { background-color: rgb(143 178 255 / 0.1); }
+:root[data-palette="slate"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="slate"]:not([data-accent]) button.bg-brand, :root[data-palette="slate"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="slate"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="slate"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="sand"] {
+  --color-canvas: #faf6ef; --color-surface: #fffdf9; --color-surface-sunken: #f3ede2;
+  --color-line: #e6dccb; --color-line-strong: #d3c6ae;
+  --color-ink: #2b2218; --color-ink-soft: #6a5b46; --color-ink-faint: #85755f;
+  --color-rail: #fffdf9; --color-rail-line: #e6dccb; --color-rail-ink: #2b2218; --color-rail-ink-soft: #6a5b46;
+  --color-rail-hover: #f3ede2; --color-rail-active: #f3e9d6;
+}
+:root[data-palette="sand"]:not([data-accent]) {
+  --color-brand: #b45309; --color-brand-ink: #b45309; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #b45309 86%, #000);
+  --color-brand-soft: #fcf1e0; --color-brand-line: #ecc99a; --color-accent: #e0954a;
+  --accent-light: color-mix(in oklch, #b45309 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="sand"][data-theme="dark"] {
+  --color-canvas: #000000; --color-surface: #000000; --color-surface-sunken: #000000;
+  --color-line: rgb(230 196 130 / 0.22); --color-line-strong: rgb(230 196 130 / 0.4);
+  --color-ink: #f3e3c3; --color-ink-soft: #d9c398; --color-ink-faint: #b8a272;
+  --color-rail: #000000; --color-rail-line: rgb(230 196 130 / 0.22); --color-rail-ink: #f3e3c3; --color-rail-ink-soft: #d9c398;
+  --color-rail-hover: rgb(230 196 130 / 0.1); --color-rail-active: rgb(230 196 130 / 0.18);
+}
+:root[data-palette="sand"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #f0b060; --color-brand-ink: #f0b060; --color-on-brand: #241200;
+  --color-brand-hover: color-mix(in oklch, #f0b060 86%, #fff);
+  --color-brand-soft: #1e1306; --color-brand-line: #6b4416; --color-accent: #f6c88e;
+  --accent-light: color-mix(in oklch, #f0b060 80%, #fff); --accent-dark-on: #241200;
+}
+:root[data-palette="sand"][data-theme="dark"]:not([data-accent]) .brand-name { color: #f0b060; }
+:root[data-palette="sand"][data-theme="dark"] aside nav a:hover { background-color: rgb(230 196 130 / 0.1); }
+:root[data-palette="sand"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="sand"]:not([data-accent]) button.bg-brand, :root[data-palette="sand"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="sand"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="sand"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="rose"] {
+  --color-canvas: #fbf5f6; --color-surface: #fffdfd; --color-surface-sunken: #f5ebed;
+  --color-line: #ecdde0; --color-line-strong: #dcc6cb;
+  --color-ink: #2d1a20; --color-ink-soft: #6e4b55; --color-ink-faint: #8a6671;
+  --color-rail: #fffdfd; --color-rail-line: #ecdde0; --color-rail-ink: #2d1a20; --color-rail-ink-soft: #6e4b55;
+  --color-rail-hover: #f5ebed; --color-rail-active: #f7e6ea;
+}
+:root[data-palette="rose"]:not([data-accent]) {
+  --color-brand: #be185d; --color-brand-ink: #be185d; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #be185d 86%, #000);
+  --color-brand-soft: #fdeaf1; --color-brand-line: #f2bdd0; --color-accent: #e0638f;
+  --accent-light: color-mix(in oklch, #be185d 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="rose"][data-theme="dark"] {
+  --color-canvas: #000000; --color-surface: #000000; --color-surface-sunken: #000000;
+  --color-line: rgb(255 150 180 / 0.22); --color-line-strong: rgb(255 150 180 / 0.4);
+  --color-ink: #ffd9e2; --color-ink-soft: #f0a9bc; --color-ink-faint: #d17f96;
+  --color-rail: #000000; --color-rail-line: rgb(255 150 180 / 0.22); --color-rail-ink: #ffd9e2; --color-rail-ink-soft: #f0a9bc;
+  --color-rail-hover: rgb(255 150 180 / 0.1); --color-rail-active: rgb(255 150 180 / 0.18);
+}
+:root[data-palette="rose"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #ff8fb5; --color-brand-ink: #ff8fb5; --color-on-brand: #2a0a14;
+  --color-brand-hover: color-mix(in oklch, #ff8fb5 86%, #fff);
+  --color-brand-soft: #2a0a14; --color-brand-line: #7a2142; --color-accent: #ffb3cc;
+  --accent-light: color-mix(in oklch, #ff8fb5 80%, #fff); --accent-dark-on: #2a0a14;
+}
+:root[data-palette="rose"][data-theme="dark"]:not([data-accent]) .brand-name { color: #ff8fb5; }
+:root[data-palette="rose"][data-theme="dark"] aside nav a:hover { background-color: rgb(255 150 180 / 0.1); }
+:root[data-palette="rose"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="rose"]:not([data-accent]) button.bg-brand, :root[data-palette="rose"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="rose"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="rose"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="mono"] {
+  --color-canvas: #f6f6f6; --color-surface: #ffffff; --color-surface-sunken: #ededed;
+  --color-line: #e0e0e0; --color-line-strong: #c8c8c8;
+  --color-ink: #111111; --color-ink-soft: #555555; --color-ink-faint: #707070;
+  --color-rail: #ffffff; --color-rail-line: #e0e0e0; --color-rail-ink: #111111; --color-rail-ink-soft: #555555;
+  --color-rail-hover: #ededed; --color-rail-active: #ebebeb;
+}
+:root[data-palette="mono"]:not([data-accent]) {
+  --color-brand: #111111; --color-brand-ink: #111111; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #111111 86%, #000);
+  --color-brand-soft: #efefef; --color-brand-line: #cfcfcf; --color-accent: #555555;
+  --accent-light: color-mix(in oklch, #111111 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="mono"][data-theme="dark"] {
+  --color-canvas: #000000; --color-surface: #000000; --color-surface-sunken: #000000;
+  --color-line: rgb(255 255 255 / 0.2); --color-line-strong: rgb(255 255 255 / 0.38);
+  --color-ink: #f2f2f2; --color-ink-soft: #c4c4c4; --color-ink-faint: #999999;
+  --color-rail: #000000; --color-rail-line: rgb(255 255 255 / 0.2); --color-rail-ink: #f2f2f2; --color-rail-ink-soft: #c4c4c4;
+  --color-rail-hover: rgb(255 255 255 / 0.08); --color-rail-active: rgb(255 255 255 / 0.16);
+}
+:root[data-palette="mono"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #ffffff; --color-brand-ink: #ffffff; --color-on-brand: #000000;
+  --color-brand-hover: color-mix(in oklch, #ffffff 86%, #fff);
+  --color-brand-soft: #111111; --color-brand-line: #444444; --color-accent: #cfcfcf;
+  --accent-light: color-mix(in oklch, #ffffff 80%, #fff); --accent-dark-on: #000000;
+}
+:root[data-palette="mono"][data-theme="dark"]:not([data-accent]) .brand-name { color: #ffffff; }
+:root[data-palette="mono"][data-theme="dark"] aside nav a:hover { background-color: rgb(255 255 255 / 0.08); }
+:root[data-palette="mono"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="mono"]:not([data-accent]) button.bg-brand, :root[data-palette="mono"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="mono"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="mono"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+/* ── VS Code-style themes: their own light and dark, the dark with the theme's real background. ── */
+
+:root[data-palette="dracula"] {
+  --color-canvas: #fffbeb; --color-surface: #ffffff; --color-surface-sunken: #f2edd2;
+  --color-line: #e0dcc0; --color-line-strong: #cbc6a4;
+  --color-ink: #1f1f1f; --color-ink-soft: #4a4a4a; --color-ink-faint: #6c664b;
+  --color-rail: #ffffff; --color-rail-line: #e0dcc0; --color-rail-ink: #1f1f1f; --color-rail-ink-soft: #4a4a4a;
+  --color-rail-hover: #f2edd2; --color-rail-active: #efe9cc;
+}
+:root[data-palette="dracula"]:not([data-accent]) {
+  --color-brand: #644ac9; --color-brand-ink: #644ac9; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #644ac9 86%, #000);
+  --color-brand-soft: #efeaff; --color-brand-line: #cabff0; --color-accent: #a78bfa;
+  --accent-light: color-mix(in oklch, #644ac9 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="dracula"][data-theme="dark"] {
+  --color-canvas: #282a36; --color-surface: #21222c; --color-surface-sunken: #191a21;
+  --color-line: rgb(98 114 164 / 0.45); --color-line-strong: rgb(98 114 164 / 0.7);
+  --color-ink: #f8f8f2; --color-ink-soft: #cfd0e0; --color-ink-faint: #9aa3cc;
+  --color-rail: #191a21; --color-rail-line: rgb(98 114 164 / 0.45); --color-rail-ink: #f8f8f2; --color-rail-ink-soft: #cfd0e0;
+  --color-rail-hover: rgb(189 147 249 / 0.1); --color-rail-active: rgb(189 147 249 / 0.2);
+}
+:root[data-palette="dracula"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #bd93f9; --color-brand-ink: #bd93f9; --color-on-brand: #1e1f29;
+  --color-brand-hover: color-mix(in oklch, #bd93f9 86%, #fff);
+  --color-brand-soft: #2e2640; --color-brand-line: #5b4a8f; --color-accent: #ff79c6;
+  --accent-light: color-mix(in oklch, #bd93f9 80%, #fff); --accent-dark-on: #1e1f29;
+}
+:root[data-palette="dracula"][data-theme="dark"]:not([data-accent]) .brand-name { color: #bd93f9; }
+:root[data-palette="dracula"][data-theme="dark"] body { background: #282a36; }
+:root[data-palette="dracula"][data-theme="dark"] aside nav a:hover { background-color: rgb(189 147 249 / 0.1); }
+:root[data-palette="dracula"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="dracula"]:not([data-accent]) button.bg-brand, :root[data-palette="dracula"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="dracula"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="dracula"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="nord"] {
+  --color-canvas: #eceff4; --color-surface: #ffffff; --color-surface-sunken: #e5e9f0;
+  --color-line: #d8dee9; --color-line-strong: #c3ccdb;
+  --color-ink: #2e3440; --color-ink-soft: #4c566a; --color-ink-faint: #5e6a80;
+  --color-rail: #ffffff; --color-rail-line: #d8dee9; --color-rail-ink: #2e3440; --color-rail-ink-soft: #4c566a;
+  --color-rail-hover: #e5e9f0; --color-rail-active: #dfe6f0;
+}
+:root[data-palette="nord"]:not([data-accent]) {
+  --color-brand: #5e81ac; --color-brand-ink: #5e81ac; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #5e81ac 86%, #000);
+  --color-brand-soft: #e5eef7; --color-brand-line: #b7cbe0; --color-accent: #81a1c1;
+  --accent-light: color-mix(in oklch, #5e81ac 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="nord"][data-theme="dark"] {
+  --color-canvas: #2e3440; --color-surface: #3b4252; --color-surface-sunken: #272c36;
+  --color-line: rgb(136 192 208 / 0.28); --color-line-strong: rgb(136 192 208 / 0.5);
+  --color-ink: #eceff4; --color-ink-soft: #d8dee9; --color-ink-faint: #a3b1c8;
+  --color-rail: #272c36; --color-rail-line: rgb(136 192 208 / 0.28); --color-rail-ink: #eceff4; --color-rail-ink-soft: #d8dee9;
+  --color-rail-hover: rgb(136 192 208 / 0.12); --color-rail-active: rgb(136 192 208 / 0.22);
+}
+:root[data-palette="nord"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #88c0d0; --color-brand-ink: #88c0d0; --color-on-brand: #1f2933;
+  --color-brand-hover: color-mix(in oklch, #88c0d0 86%, #fff);
+  --color-brand-soft: #2b3b4a; --color-brand-line: #4c6f80; --color-accent: #a3d4e0;
+  --accent-light: color-mix(in oklch, #88c0d0 80%, #fff); --accent-dark-on: #1f2933;
+}
+:root[data-palette="nord"][data-theme="dark"]:not([data-accent]) .brand-name { color: #88c0d0; }
+:root[data-palette="nord"][data-theme="dark"] body { background: #2e3440; }
+:root[data-palette="nord"][data-theme="dark"] aside nav a:hover { background-color: rgb(136 192 208 / 0.12); }
+:root[data-palette="nord"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="nord"]:not([data-accent]) button.bg-brand, :root[data-palette="nord"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="nord"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="nord"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="tokyo"] {
+  --color-canvas: #e1e2e7; --color-surface: #f2f3f8; --color-surface-sunken: #d5d6db;
+  --color-line: #c4c8da; --color-line-strong: #a9aec9;
+  --color-ink: #343b58; --color-ink-soft: #565f89; --color-ink-faint: #6c7399;
+  --color-rail: #f2f3f8; --color-rail-line: #c4c8da; --color-rail-ink: #343b58; --color-rail-ink-soft: #565f89;
+  --color-rail-hover: #d5d6db; --color-rail-active: #d3d7ea;
+}
+:root[data-palette="tokyo"]:not([data-accent]) {
+  --color-brand: #34548a; --color-brand-ink: #34548a; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #34548a 86%, #000);
+  --color-brand-soft: #dde5f5; --color-brand-line: #a9b9dd; --color-accent: #7aa2f7;
+  --accent-light: color-mix(in oklch, #34548a 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="tokyo"][data-theme="dark"] {
+  --color-canvas: #1a1b26; --color-surface: #24283b; --color-surface-sunken: #16161e;
+  --color-line: rgb(122 162 247 / 0.28); --color-line-strong: rgb(122 162 247 / 0.5);
+  --color-ink: #c0caf5; --color-ink-soft: #a9b1d6; --color-ink-faint: #7982a9;
+  --color-rail: #16161e; --color-rail-line: rgb(122 162 247 / 0.28); --color-rail-ink: #c0caf5; --color-rail-ink-soft: #a9b1d6;
+  --color-rail-hover: rgb(122 162 247 / 0.12); --color-rail-active: rgb(122 162 247 / 0.22);
+}
+:root[data-palette="tokyo"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #7aa2f7; --color-brand-ink: #7aa2f7; --color-on-brand: #10131f;
+  --color-brand-hover: color-mix(in oklch, #7aa2f7 86%, #fff);
+  --color-brand-soft: #222c4a; --color-brand-line: #3d59a1; --color-accent: #bb9af7;
+  --accent-light: color-mix(in oklch, #7aa2f7 80%, #fff); --accent-dark-on: #10131f;
+}
+:root[data-palette="tokyo"][data-theme="dark"]:not([data-accent]) .brand-name { color: #7aa2f7; }
+:root[data-palette="tokyo"][data-theme="dark"] body { background: #1a1b26; }
+:root[data-palette="tokyo"][data-theme="dark"] aside nav a:hover { background-color: rgb(122 162 247 / 0.12); }
+:root[data-palette="tokyo"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="tokyo"]:not([data-accent]) button.bg-brand, :root[data-palette="tokyo"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="tokyo"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="tokyo"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="monokai"] {
+  --color-canvas: #faf9f5; --color-surface: #ffffff; --color-surface-sunken: #f0efe6;
+  --color-line: #e2e0d2; --color-line-strong: #cbc8b2;
+  --color-ink: #272822; --color-ink-soft: #5b5a4d; --color-ink-faint: #77755f;
+  --color-rail: #ffffff; --color-rail-line: #e2e0d2; --color-rail-ink: #272822; --color-rail-ink-soft: #5b5a4d;
+  --color-rail-hover: #f0efe6; --color-rail-active: #ecebdc;
+}
+:root[data-palette="monokai"]:not([data-accent]) {
+  --color-brand: #6a9a0a; --color-brand-ink: #6a9a0a; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #6a9a0a 86%, #000);
+  --color-brand-soft: #eef5d8; --color-brand-line: #c7da8a; --color-accent: #f92672;
+  --accent-light: color-mix(in oklch, #6a9a0a 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="monokai"][data-theme="dark"] {
+  --color-canvas: #272822; --color-surface: #2f302a; --color-surface-sunken: #1e1f1a;
+  --color-line: rgb(166 226 46 / 0.25); --color-line-strong: rgb(166 226 46 / 0.45);
+  --color-ink: #f8f8f2; --color-ink-soft: #cfcfc2; --color-ink-faint: #a59f85;
+  --color-rail: #1e1f1a; --color-rail-line: rgb(166 226 46 / 0.25); --color-rail-ink: #f8f8f2; --color-rail-ink-soft: #cfcfc2;
+  --color-rail-hover: rgb(166 226 46 / 0.1); --color-rail-active: rgb(166 226 46 / 0.2);
+}
+:root[data-palette="monokai"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #a6e22e; --color-brand-ink: #a6e22e; --color-on-brand: #1a1c0f;
+  --color-brand-hover: color-mix(in oklch, #a6e22e 86%, #fff);
+  --color-brand-soft: #2a3315; --color-brand-line: #4d6a12; --color-accent: #f92672;
+  --accent-light: color-mix(in oklch, #a6e22e 80%, #fff); --accent-dark-on: #1a1c0f;
+}
+:root[data-palette="monokai"][data-theme="dark"]:not([data-accent]) .brand-name { color: #a6e22e; }
+:root[data-palette="monokai"][data-theme="dark"] body { background: #272822; }
+:root[data-palette="monokai"][data-theme="dark"] aside nav a:hover { background-color: rgb(166 226 46 / 0.1); }
+:root[data-palette="monokai"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="monokai"]:not([data-accent]) button.bg-brand, :root[data-palette="monokai"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="monokai"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="monokai"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+:root[data-palette="solarized"] {
+  --color-canvas: #fdf6e3; --color-surface: #fffbf0; --color-surface-sunken: #eee8d5;
+  --color-line: #e0d9c2; --color-line-strong: #c9c2a6;
+  --color-ink: #073642; --color-ink-soft: #586e75; --color-ink-faint: #657b83;
+  --color-rail: #fffbf0; --color-rail-line: #e0d9c2; --color-rail-ink: #073642; --color-rail-ink-soft: #586e75;
+  --color-rail-hover: #eee8d5; --color-rail-active: #f3ecd5;
+}
+:root[data-palette="solarized"]:not([data-accent]) {
+  --color-brand: #268bd2; --color-brand-ink: #268bd2; --color-on-brand: #ffffff;
+  --color-brand-hover: color-mix(in oklch, #268bd2 86%, #000);
+  --color-brand-soft: #e4f0f8; --color-brand-line: #a9cfe8; --color-accent: #2aa198;
+  --accent-light: color-mix(in oklch, #268bd2 30%, #fff); --accent-on: #ffffff;
+}
+:root[data-palette="solarized"][data-theme="dark"] {
+  --color-canvas: #002b36; --color-surface: #073642; --color-surface-sunken: #00212a;
+  --color-line: rgb(42 161 152 / 0.35); --color-line-strong: rgb(42 161 152 / 0.6);
+  --color-ink: #eee8d5; --color-ink-soft: #93a1a1; --color-ink-faint: #839496;
+  --color-rail: #00212a; --color-rail-line: rgb(42 161 152 / 0.35); --color-rail-ink: #eee8d5; --color-rail-ink-soft: #93a1a1;
+  --color-rail-hover: rgb(42 161 152 / 0.14); --color-rail-active: rgb(42 161 152 / 0.25);
+}
+:root[data-palette="solarized"][data-theme="dark"]:not([data-accent]) {
+  --color-brand: #2aa198; --color-brand-ink: #2aa198; --color-on-brand: #00212a;
+  --color-brand-hover: color-mix(in oklch, #2aa198 86%, #fff);
+  --color-brand-soft: #05414c; --color-brand-line: #1b6f68; --color-accent: #b58900;
+  --accent-light: color-mix(in oklch, #2aa198 80%, #fff); --accent-dark-on: #00212a;
+}
+:root[data-palette="solarized"][data-theme="dark"]:not([data-accent]) .brand-name { color: #2aa198; }
+:root[data-palette="solarized"][data-theme="dark"] body { background: #002b36; }
+:root[data-palette="solarized"][data-theme="dark"] aside nav a:hover { background-color: rgb(42 161 152 / 0.14); }
+:root[data-palette="solarized"][data-theme="dark"]:not([data-accent]) button.bg-brand:not(:disabled):hover { background-color: var(--color-brand-hover); }
+:root[data-palette="solarized"]:not([data-accent]) button.bg-brand, :root[data-palette="solarized"]:not([data-accent]) a.bg-brand { color: var(--color-on-brand); }
+:root[data-palette="solarized"]:not([data-accent]) .start-plan { color: var(--accent-on, #ffffff); }
+:root[data-palette="solarized"][data-theme="dark"]:not([data-accent]) .start-plan { color: var(--accent-dark-on); }
+
+/* The deep panels some modules draw inline take the theme's own surface in dark mode. */
+:root[data-palette][data-theme="dark"] [class*="bg-[#142d27]"], :root[data-palette][data-theme="dark"] .slip { background-color: var(--color-surface) !important; box-shadow: inset 0 0 0 1px var(--color-line); }
+:root[data-palette][data-theme="dark"] [class*="bg-[#203e35]"] { background-color: var(--color-surface-sunken) !important; }
+:root[data-palette][data-theme="dark"] [class*="border-[#3c574b]"] { border-color: var(--color-line) !important; }
+
+/* The logo follows the colour (lib/logoTint.ts). */
+.logo-themed { filter: var(--logo-filter, none); transition: filter 240ms; }
+
+/* ── Button shapes (lib/buttons.ts): the main, filled buttons only. ── */
+:root[data-buttons="pill"] :is(button.bg-brand, a.bg-brand, .start-plan) { border-radius: 999px; }
+:root[data-buttons="square"] :is(button.bg-brand, a.bg-brand, .start-plan) { border-radius: 2px; }
+:root[data-buttons="outline"] :is(button.bg-brand, a.bg-brand, .start-plan) {
+  background: transparent !important; color: var(--color-brand) !important;
+  box-shadow: inset 0 0 0 1.5px var(--color-brand) !important;
+}
+:root[data-buttons="outline"] :is(button.bg-brand, a.bg-brand, .start-plan):hover:not(:disabled) { background: var(--color-brand-soft) !important; }
+:root[data-buttons="soft"] :is(button.bg-brand, a.bg-brand, .start-plan) {
+  background: var(--color-brand-soft) !important; color: var(--color-brand-ink) !important; box-shadow: none !important;
+}
+:root[data-buttons="soft"] :is(button.bg-brand, a.bg-brand, .start-plan):hover:not(:disabled) { background: var(--color-brand-line) !important; }
