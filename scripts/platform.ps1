@@ -165,7 +165,21 @@ foreach ($m in $modules) {
     }
 
     Write-Host ("  starting  {0}..." -f $m.Id) -ForegroundColor DarkGray
-    & $bat | Out-Null
+    if (Select-String -Path $bat -Pattern 'launch\.ps1' -SimpleMatch -Quiet) {
+        # The platform's own launcher: it opens the module's tabs and returns.
+        & $bat | Out-Null
+    }
+    else {
+        # A start script that runs its server in the foreground (M03's
+        # start_github.bat does) never returns, and called here it held the
+        # whole platform at that module. Give it a tab of its own instead.
+        if (Get-Command 'wt.exe' -ErrorAction SilentlyContinue) {
+            & wt.exe -w $windowName new-tab --title $m.Id --suppressApplicationTitle -d $dir cmd /k "`"$bat`""
+        }
+        else {
+            $null = Start-Process -FilePath 'cmd.exe' -ArgumentList @('/k', "`"$bat`"") -WorkingDirectory $dir
+        }
+    }
 
     # The module launchers return as soon as their tabs exist, so confirm the
     # port rather than trusting the exit code. The HOME card re-probes these
