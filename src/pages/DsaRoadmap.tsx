@@ -69,6 +69,7 @@ export function DsaRoadmap() {
         onChange={(update) => setProgress(update)}
         programme={programme}
         onProgramme={pickProgramme}
+        onPractise={() => navigate("/code")}
         onInterview={(stop) => navigate(`/practice?topic=${encodeURIComponent(stop.name.toLowerCase())}`)}
       />
     </>

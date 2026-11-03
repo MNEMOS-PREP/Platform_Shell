@@ -34,6 +34,7 @@ const API = {
   m04: 8104,
   m05: 8105,
   m06: 8106,
+  m07: 8107,
   m11: 8111,
   m13: 8113,
   // GD Arena: framed by /gd, not proxied by noun; this gives /sys/m14/health.
@@ -116,6 +117,8 @@ const OWNER: Record<string, Mod> = {
   */
   agents: "m06",
   drills: "m06",
+  // M07, live coding (2026-11-04): /v1/coding/problems, /v1/coding/turns, /v1/coding/<turn>/run.
+  coding: "m07",
   interviews: "m06",
   voice: "m11",
   calibration: "m13",
@@ -217,6 +220,7 @@ const SCREEN_OWNER: Record<string, Mod> = {
   github: "m03",
   skills: "m04",
   mock: "m06",
+  code: "m07",
   voice: "m11",
   score: "m13",
   turns: "m13",

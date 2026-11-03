@@ -77,6 +77,7 @@ import { initPalette } from "./lib/palette";
 import { initTheme } from "./lib/theme";
 import { Audit } from "./pages/Audit";
 import { DsaRoadmap } from "./pages/DsaRoadmap";
+import { LiveCodingPage } from "./pages/LiveCodingPage";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
 // must render the same page (see theme.css).
@@ -113,6 +114,8 @@ const STUDENT_NAV: FrameNavGroup[] = [
       { to: "/gd", label: "Group discussion", icon: "users" },
       // M20: examined on your own course material — a lab exam, a viva voce.
       { to: "/viva", label: "Viva practice", icon: "student" },
+      // M07 (2026-11-04): write code, run it in the sandbox, get scored (pages/LiveCodingPage.tsx).
+      { to: "/code", label: "Live coding", icon: "code" },
     ],
   },
   {
@@ -510,6 +513,7 @@ function App() {
             M06's focused interview on it (pages/Practice.tsx). */}
         <Route path="/practice" element={<Practice />} />
         <Route path="/roadmap" element={<DsaRoadmap />} />
+        <Route path="/code" element={<LiveCodingPage />} />
         {/* M14 is a Next.js app with its own backend: framed, not mounted.
             /m14 is the registry's path for it, kept as a way in. */}
         <Route path="/gd" element={<GroupDiscussion />} />
