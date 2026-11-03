@@ -114,6 +114,7 @@ projects/
   jd-parser-coverage/      M02
   Company_Guider/          M15
   GD_Arena/                M14 (optional: /gd says it is not open without it)
+  Rovix/                   M21 (required: every page mounts him; npm install in Rovix/Frontend)
 ```
 
 `npm install` once, here. The modules keep their own dependencies.

@@ -41,6 +41,7 @@ const API = {
   m15: 8115,
   m16: 8116,
   m20: 8120,
+  m21: 8121,
 } as const;
 type Mod = keyof typeof API;
 
@@ -58,6 +59,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
   "@ai/m16": sibling("Counselor/Frontend/frontend_M16_Counselor/src/index.ts"),
   "@ai/m20": sibling("Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"),
+  "@ai/m21": sibling("Rovix/Frontend/frontend_M21_Rovix/src/index.ts"),
 };
 
 /**
@@ -136,6 +138,9 @@ const OWNER: Record<string, Mod> = {
   // student's id rides under it (/v1/counsel/candidates/…), as M04 owns
   // `candidates` at the top level.
   counsel: "m16",
+  // M21, Rovix (2026-11-03): the tour's progress and the feed of what
+  // happened elsewhere, all under its own noun - /v1/rovix/me, /v1/rovix/feed.
+  rovix: "m21",
   /*
     The one genuine collision: every module serves /v1/deps, because each
     module answers "what am I missing" for itself. Only M13's DepsPage is

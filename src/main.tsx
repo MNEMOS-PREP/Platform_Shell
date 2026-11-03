@@ -54,6 +54,7 @@ import { m13Routes } from "@ai/m13";
 import { m15Routes } from "@ai/m15";
 import { NotesCounsel, m16Routes } from "@ai/m16";
 import { m20Routes } from "@ai/m20";
+import { Rovix } from "@ai/m21";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Answers } from "./pages/Answers";
@@ -340,7 +341,8 @@ const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
   interview has ENDED: the room and its notes share one path, and a card
   during a live interview would pull the student out of the room.
 */
-function AfterInterviewNudge() {
+/** The interview on this page, if the page is one (/mock/<id>), and its status. */
+function useInterviewOnPage() {
   const location = useLocation();
   const sid = /^\/mock\/([0-9a-f-]{36})$/.exec(location.pathname)?.[1];
   const status = useQuery({
@@ -349,8 +351,27 @@ function AfterInterviewNudge() {
     enabled: !!sid,
     refetchInterval: (query) => (query.state.data?.status === "ended" ? false : 5000),
   });
-  if (!sid || status.data?.status !== "ended") return null;
+  return { sid, status: status.data?.status };
+}
+
+function AfterInterviewNudge() {
+  const { sid, status } = useInterviewOnPage();
+  if (!sid || status !== "ended") return null;
   return <NotesCounsel sessionId={sid} />;
+}
+
+/*
+  A room is live: an interview that has not ended (the room and its notes
+  share one path), a viva's room, or a group discussion. Rovix goes quiet
+  there - a small still globe, no bubbles - because a card mid-answer pulls a
+  student out of the room, and the room's own controls sit in that corner.
+*/
+function useInRoom(): boolean {
+  const location = useLocation();
+  const { sid, status } = useInterviewOnPage();
+  if (sid) return status !== "ended";
+  if (/^\/viva\/[^/]+$/.test(location.pathname)) return !/^\/viva\/(new|progress)$/.test(location.pathname);
+  return location.pathname === "/gd";
 }
 
 /*
@@ -386,6 +407,7 @@ function App() {
   const candidate = candidateIdOf(session);
   const consent = usePracticeConsent(candidate);
   const profile = useProfile(candidate);
+  const inRoom = useInRoom();
 
   // What the interview setup can plan FOR: the drives this student told us
   // about that M15 knows the format of. M06 reads these through its context.
@@ -460,6 +482,7 @@ function App() {
     : STUDENT_NAV;
 
   return (
+    <>
     <Frame groups={nav} tabs={staffRole ? STAFF_TABS : STUDENT_TABS}>
       <MockTargetsContext.Provider value={targets}>
       <ScreenBoundary key={`${who}${location.pathname}`}>
@@ -510,6 +533,13 @@ function App() {
       {!staffRole && <AfterInterviewNudge />}
       </MockTargetsContext.Provider>
     </Frame>
+    {/* M21, beside the frame and not in it: the frame keys its <main> on the
+        path, so anything inside remounts on every navigation - and a tour
+        that moved to the next page forgot it was running (2026-11-03). He
+        walks the menu this person has, and lifts himself above the mentor's
+        card when it shares his corner. */}
+    <Rovix nav={nav} quiet={inRoom} name={profile.data?.display_name || session.name} />
+    </>
   );
 }
 
