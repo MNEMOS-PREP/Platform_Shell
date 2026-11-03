@@ -12,6 +12,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { Icon, MOD_KEY, PageHeader } from "@ai/core";
+import { startTour } from "@ai/m21";
 
 import { SHORTCUTS } from "../ui/Shortcuts";
 
@@ -50,6 +51,22 @@ export function Help() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="Help & feedback" subtitle="Answers to the common questions, and a way to tell us what's wrong." />
+
+      {/* M21: the tour, from the one page people open when they are lost. */}
+      <div className="panel mt-6 flex flex-wrap items-center gap-3 p-4">
+        <Icon name="compass" size={18} className="shrink-0 text-brand" />
+        <p className="min-w-0 flex-1 text-sm text-ink-soft">
+          <span className="font-medium text-ink">Not sure where something is?</span> Rovix can walk you
+          through the platform again, a few pages at a time.
+        </p>
+        <button
+          type="button"
+          onClick={() => startTour("start")}
+          className="h-9 rounded-lg bg-brand px-3.5 text-sm font-semibold text-white hover:bg-brand-hover"
+        >
+          Take the tour
+        </button>
+      </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section aria-label="Common questions" className="panel px-6 py-2">

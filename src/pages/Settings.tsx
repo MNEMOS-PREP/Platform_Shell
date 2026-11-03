@@ -12,7 +12,7 @@
  * button that does that on one click is how somebody loses a semester.
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { Icon, PageHeader, SkeletonRows, candidateIdOf, instant, signIn, signOut, useSession } from "@ai/core";
 import {
@@ -33,6 +33,8 @@ import { dailyReminderIcs, downloadIcs } from "../lib/goals";
 import { GOAL_OPTIONS, writeGoal } from "../lib/practice";
 import { CoursePicker } from "../ui/CoursePicker";
 import { DrivePicker } from "../ui/DrivePicker";
+import { RovixSettings } from "@ai/m21";
+
 import { AccentPanel, ButtonStylePanel, PalettePanel } from "../ui/AccentPicker";
 
 function Section({
@@ -47,7 +49,8 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className="grid gap-4 border-b border-line py-8 last:border-0 lg:grid-cols-[16rem_minmax(0,1fr)]">
+    // scroll-mt: opened at "#rovix", a section starts below the sticky top bar, not under it.
+    <section id={id} aria-labelledby={`${id}-h`} className="grid scroll-mt-20 gap-4 border-b border-line py-8 last:border-0 lg:grid-cols-[16rem_minmax(0,1fr)]">
       <div>
         <h2 id={`${id}-h`} className="text-sm font-semibold text-ink">
           {title}
@@ -79,6 +82,7 @@ export function Settings() {
   const session = useSession();
   const candidate = candidateIdOf(session);
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const profile = useProfile(candidate);
   const save = useSaveProfile(candidate);
   const consent = usePracticeConsent(candidate);
@@ -115,20 +119,42 @@ export function Settings() {
     setBranch(profile.data.branch);
   }, [profile.data]);
 
+  // "/settings#rovix" (Rovix's panel), "#privacy" (his consent note): open at
+  // that section, once the page below it has loaded.
+  useEffect(() => {
+    if (!hash || profile.isLoading) return;
+    document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
+  }, [hash, profile.isLoading]);
+
   if (!candidate) {
+    // Staff have no student record, but they have a look and a Rovix: both
+    // were reachable only from the top bar, and Rovix's off switch has to
+    // have somewhere to be turned back on (2026-11-03).
     return (
-      <div className="mx-auto max-w-2xl">
-        <PageHeader title="Settings" subtitle="Signed in as staff — there is no student record to manage here." />
-        <button
-          type="button"
-          onClick={() => {
-            signOut();
-            navigate("/signin");
-          }}
-          className="mt-6 inline-flex h-10 items-center gap-2 rounded-lg border border-line px-4 text-sm text-ink hover:border-line-strong"
-        >
-          <Icon name="arrowLeft" size={15} /> Sign out
-        </button>
+      <div className="mx-auto max-w-4xl">
+        <PageHeader title="Settings" subtitle="Signed in as staff — there is no student record to manage here, only how the platform looks for you." />
+        <Section id="appearance" title="Appearance" sub="Pick a theme, and the colour of buttons and highlights.">
+          <div className="space-y-6">
+            <PalettePanel />
+            <ButtonStylePanel />
+            <AccentPanel />
+          </div>
+        </Section>
+        <Section id="rovix" title="Rovix" sub="The guide in the corner: on or off, how see-through, the tour, and what he tells you about.">
+          <RovixSettings />
+        </Section>
+        <Section id="account" title="Account">
+          <button
+            type="button"
+            onClick={() => {
+              signOut();
+              navigate("/signin");
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line px-3.5 text-sm text-ink hover:border-line-strong"
+          >
+            <Icon name="arrowLeft" size={15} /> Sign out
+          </button>
+        </Section>
       </div>
     );
   }
@@ -312,6 +338,10 @@ export function Settings() {
               <ButtonStylePanel />
               <AccentPanel />
             </div>
+          </Section>
+
+          <Section id="rovix" title="Rovix" sub="The guide in the corner: on or off, how see-through, the tour, and what he tells you about.">
+            <RovixSettings />
           </Section>
 
           <Section id="voice" title="Voice" sub="The interviewer reads each question aloud; every line is on screen too.">

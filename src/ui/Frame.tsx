@@ -43,6 +43,7 @@ import {
 import { useProfile } from "@ai/m04";
 import { useHistory } from "@ai/m06";
 import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
+import { openRovix, startTour } from "@ai/m21";
 
 import { readEmail, writeEmail } from "../lib/account";
 import { currentStreak, practiceDays } from "../lib/practice";
@@ -446,6 +447,22 @@ export function Frame({
       run: () => navigate("/help", { state: { from: location.pathname } }),
     },
     {
+      id: "do:tour",
+      group: "Actions",
+      label: "Take the tour",
+      icon: "compass",
+      keywords: "tutorial walkthrough guide help rovix onboarding show around",
+      run: () => startTour("start"),
+    },
+    {
+      id: "do:rovix",
+      group: "Actions",
+      label: "Open Rovix's news",
+      icon: "sparkles",
+      keywords: "notifications news inbox updates rovix",
+      run: () => openRovix("news"),
+    },
+    {
       id: "do:shortcuts",
       group: "Actions",
       label: "Keyboard shortcuts",
@@ -481,7 +498,9 @@ export function Frame({
             <Logo />
           </div>
 
-          <nav aria-label="Platform" className="flex-1 space-y-5 overflow-y-auto px-3 pt-2 pb-4">
+          {/* `data-tour`: where Rovix's tour points (M21). Named here rather
+              than found by class, so restyling the frame never loses a step. */}
+          <nav aria-label="Platform" data-tour="rail" className="flex-1 space-y-5 overflow-y-auto px-3 pt-2 pb-4">
             {groups.map((group) => (
               <div key={group.label || "main"}>
                 {group.label && (
@@ -579,6 +598,7 @@ export function Frame({
               )}
               <button
                 type="button"
+                data-tour="search"
                 onClick={() => setPalette(true)}
                 className="ml-auto hidden h-9 w-72 items-center gap-2.5 rounded-lg border border-line bg-surface px-3 text-sm text-ink-faint hover:border-line-strong hover:text-ink-soft md:flex"
               >
@@ -595,9 +615,11 @@ export function Frame({
                 >
                   <Icon name="search" size={17} />
                 </button>
-                {candidateIdOf(session) && <StreakChip />}
-                <AccentButton />
-                <ThemeToggle />
+                <span data-tour="corner" className="flex items-center gap-1.5">
+                  {candidateIdOf(session) && <StreakChip />}
+                  <AccentButton />
+                  <ThemeToggle />
+                </span>
                 {session && (
                   <Link
                     to="/settings"
