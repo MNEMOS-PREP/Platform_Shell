@@ -14,6 +14,8 @@ import { Icon, PageHeader, SkeletonRows, candidateIdOf, instant, relativeDays, u
 import { useTrajectory } from "@ai/m04";
 import { useHistory, type SessionSummary } from "@ai/m06";
 
+import { checkpointIds } from "../roadmap";
+
 const MODE_LABEL: Record<string, string> = {
   practice: "Practice",
   mock: "Mock",
@@ -70,11 +72,14 @@ export function History() {
   const session = useSession();
   const candidate = candidateIdOf(session);
   const history = useHistory(200);
+  // A roadmap checkpoint is learning, not a mock interview: Mock's history is the interviews.
+  const hidden = checkpointIds();
+  const sessions = (history.data ?? []).filter((s) => !hidden.has(s.id));
   const trajectory = useTrajectory(candidate);
 
   const groups = useMemo(() => {
     const out = new Map<string, SessionSummary[]>();
-    for (const s of history.data ?? []) out.set(monthOf(s.created_at), [...(out.get(monthOf(s.created_at)) ?? []), s]);
+    for (const s of sessions) out.set(monthOf(s.created_at), [...(out.get(monthOf(s.created_at)) ?? []), s]);
     return [...out.entries()];
   }, [history.data]);
 
@@ -94,7 +99,7 @@ export function History() {
     };
   }, [trajectory.data]);
 
-  const started = (history.data ?? []).filter((s) => s.started_at).length;
+  const started = sessions.filter((s) => s.started_at).length;
 
   return (
     <div className="mx-auto max-w-5xl">

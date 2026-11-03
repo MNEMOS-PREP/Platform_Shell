@@ -34,6 +34,7 @@ const API = {
   m04: 8104,
   m05: 8105,
   m06: 8106,
+  m07: 8107,
   m11: 8111,
   m13: 8113,
   // GD Arena: framed by /gd, not proxied by noun; this gives /sys/m14/health.
@@ -55,7 +56,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m03": sibling("GitHub_Analyzer/Frontend/frontend_M03_GitHub_Analyzer/src/index.ts"),
   "@ai/m04": sibling("Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"),
   "@ai/m06": sibling("Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"),
-  "@ai/m07": sibling("Live_Coding/Frontend/frontend_M07_Live_Coding/src/index.ts"),
+  "@ai/m07": sibling("Live_Coding/ui/src/index.ts"),
   "@ai/m11": sibling("Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"),
   "@ai/m13": sibling("Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"),
   "@ai/m15": sibling("Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"),
@@ -116,6 +117,8 @@ const OWNER: Record<string, Mod> = {
   */
   agents: "m06",
   drills: "m06",
+  // M07, live coding (2026-11-04): /v1/coding/problems, /v1/coding/turns, /v1/coding/<turn>/run.
+  coding: "m07",
   interviews: "m06",
   voice: "m11",
   calibration: "m13",
@@ -217,6 +220,7 @@ const SCREEN_OWNER: Record<string, Mod> = {
   github: "m03",
   skills: "m04",
   mock: "m06",
+  code: "m07",
   voice: "m11",
   score: "m13",
   turns: "m13",
