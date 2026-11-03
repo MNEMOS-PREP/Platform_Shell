@@ -75,6 +75,7 @@ import { initButtons } from "./lib/buttons";
 import { initLogoTint } from "./lib/logoTint";
 import { initPalette } from "./lib/palette";
 import { initTheme } from "./lib/theme";
+import { Audit } from "./pages/Audit";
 import { DsaRoadmap } from "./pages/DsaRoadmap";
 import { System } from "./pages/System";
 // The typeface, bundled rather than fetched: a demo laptop with no network
@@ -180,7 +181,10 @@ const ADMIN_NAV: FrameNavItem[] = [
 ];
 /* Staff only (2026-10-04): module health is the operator's view, and in a
    student's menu it read as the platform showing its wiring. */
-const PLATFORM_NAV: FrameNavItem[] = [{ to: "/system", label: "System", icon: "monitor" }];
+const PLATFORM_NAV: FrameNavItem[] = [
+  { to: "/system", label: "System", icon: "monitor" },
+  { to: "/audit", label: "Audit", icon: "shield" },
+];
 
 /** Screens a brand-new student may reach before the welcome step is done. */
 const BEFORE_WELCOME = new Set(["/welcome", "/signin", "/settings", "/help"]);
@@ -500,6 +504,7 @@ function App() {
         <Route path="/answers" element={<Answers />} />
         <Route path="/help" element={<Help />} />
         <Route path="/system" element={<StaffOnly><System /></StaffOnly>} />
+        <Route path="/audit" element={<StaffOnly><Audit /></StaffOnly>} />
         <Route path="/questions/review" element={<ReviewerOnly><QuestionReview /></ReviewerOnly>} />
         {/* M15's "Practise this now" hands a topic to /practice; here that is
             M06's focused interview on it (pages/Practice.tsx). */}
