@@ -117,6 +117,10 @@ const OWNER: Record<string, Mod> = {
   */
   agents: "m06",
   drills: "m06",
+  // M03, the coding-profile sites (Codeforces, LeetCode...): /v1/coding-profiles. It must come BEFORE `coding` below:
+  // a proxy prefix matches by start of path, so `/v1/coding` would otherwise take /v1/coding-profiles for M07 and
+  // the page would fail with "Internal Server Error" whenever M07 is not running.
+  "coding-profiles": "m03",
   // M07, live coding (2026-11-04): /v1/coding/problems, /v1/coding/turns, /v1/coding/<turn>/run.
   coding: "m07",
   interviews: "m06",
