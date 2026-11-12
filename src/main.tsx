@@ -55,6 +55,7 @@ import { m15Routes } from "@ai/m15";
 import { NotesCounsel, m16Routes } from "@ai/m16";
 import { m20Routes } from "@ai/m20";
 import { Rovix } from "@ai/m21";
+import { m22Routes } from "@ai/m22";
 
 import { Frame, type FrameNavGroup, type FrameNavItem } from "./ui/Frame";
 import { Answers } from "./pages/Answers";
@@ -110,6 +111,9 @@ const STUDENT_NAV: FrameNavGroup[] = [
     label: "",
     items: [
       TODAY,
+      // M22 (2026-11-13): the career goal every other page works toward —
+      // its roadmap, its knowledge graph and its own interviews.
+      { to: "/goals", label: "Your goals", icon: "target" },
       { to: "/mock", label: "Mock interview", icon: "mic" },
       // M14, framed from its own app (pages/GroupDiscussion.tsx).
       { to: "/gd", label: "Group discussion", icon: "users" },
@@ -536,6 +540,7 @@ function App() {
         {m15Routes}
         {m16Routes}
         {m20Routes}
+        {m22Routes}
 
         {PLACEHOLDERS.map((m) => (
           <Route key={m.id} path={m.path} element={<NotBuilt name={m.name} blurb={m.blurb} />} />
