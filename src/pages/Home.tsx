@@ -35,6 +35,9 @@
  *     is the same order, top to bottom.
  *   · Staff land on their own queues with counts, not on a tour of student
  *     modules.
+ *   · 2026-11-13: a student with a career goal (M22) sees it after feedback
+ *     and the deadline, before the skill graph: readiness and the next step.
+ *     No goal, no card.
  */
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
@@ -76,6 +79,7 @@ import {
 import { useDisputeQueue, useOutbox } from "@ai/m13";
 import { useClaimReports, useReviewQueue } from "@ai/m15";
 import { CounselNudge } from "@ai/m16";
+import { GoalsTodayCard } from "@ai/m22";
 
 import { firstName } from "../lib/account";
 import { useTrackTitles } from "../lib/tracks";
@@ -1352,6 +1356,9 @@ export function Home() {
             {nextDrive(profile.data?.drives ?? []) && <CountdownCard profile={profile.data} />}
             <WhatYouGetCard />
           </div>
+          {/* A goal set before the first interview: what it asks next. Nothing
+              when there is no goal (the card renders nothing). */}
+          <GoalsTodayCard className="lg:col-span-3" />
           <CoursesCard profile={profile.data} className="lg:col-span-3" />
           <TogetherStrip />
         </div>
@@ -1366,6 +1373,9 @@ export function Home() {
           <CoursesCard profile={profile.data} className="lg:col-span-3" />
           <LastInterviewCard sessions={sessions} className="lg:col-span-2" />
           <CountdownCard profile={profile.data} />
+          {/* 2026-11-13: progress toward the goals the student set (M22) —
+              readiness and the next step, ahead of the whole skill graph. */}
+          <GoalsTodayCard className="lg:col-span-3" />
           <GrowthCard candidate={candidate} className="lg:col-span-2" />
           <MilestonesCard candidate={candidate} sessions={sessions} />
           <TogetherStrip />
