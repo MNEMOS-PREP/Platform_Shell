@@ -43,6 +43,7 @@ const API = {
   m16: 8116,
   m20: 8120,
   m21: 8121,
+  m22: 8122,
   // Platform_Audit (not an M-number): the decision ledger the Audit page reads.
   audit: 8190,
 } as const;
@@ -63,6 +64,7 @@ const MODULE_SRC: Record<string, string> = {
   "@ai/m16": sibling("Counselor/Frontend/frontend_M16_Counselor/src/index.ts"),
   "@ai/m20": sibling("Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"),
   "@ai/m21": sibling("Rovix/Frontend/frontend_M21_Rovix/src/index.ts"),
+  "@ai/m22": sibling("Follow_Your_Goal/Frontend/frontend_M22_Follow_Your_Goal/src/index.ts"),
 };
 
 /**
@@ -146,6 +148,9 @@ const OWNER: Record<string, Mod> = {
   // M21, Rovix (2026-11-03): the tour's progress and the feed of what
   // happened elsewhere, all under its own noun - /v1/rovix/me, /v1/rovix/feed.
   rovix: "m21",
+  // M22, Follow Your Goal (2026-11-13): the goals, their roadmaps and graphs,
+  // and the Goal Context other modules read - all under /v1/goals/….
+  goals: "m22",
   /*
     The one genuine collision: every module serves /v1/deps, because each
     module answers "what am I missing" for itself. Only M13's DepsPage is
@@ -236,6 +241,7 @@ const SCREEN_OWNER: Record<string, Mod> = {
   library: "m20",
   viva: "m20",
   counsel: "m16",
+  goals: "m22",
 };
 
 const depsByScreen: Plugin = {

@@ -27,7 +27,8 @@
       "@ai/m15": ["../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"],
       "@ai/m16": ["../Counselor/Frontend/frontend_M16_Counselor/src/index.ts"],
       "@ai/m20": ["../Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"],
-      "@ai/m21": ["../Rovix/Frontend/frontend_M21_Rovix/src/index.ts"]
+      "@ai/m21": ["../Rovix/Frontend/frontend_M21_Rovix/src/index.ts"],
+      "@ai/m22": ["../Follow_Your_Goal/Frontend/frontend_M22_Follow_Your_Goal/src/index.ts"]
     }
   },
   "include": ["src"]
