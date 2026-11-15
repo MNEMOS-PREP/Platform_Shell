@@ -353,20 +353,23 @@ const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 /*
   After an interview, the mentor (M16) floats over the notes — the talk when
   one is due, and "go through these notes with me" — and only once the
-  interview has ENDED: the room and its notes share one path, and a card
-  during a live interview would pull the student out of the room.
+  interview has ENDED: the ended room at /mock/<id> and the notes at
+  /mock/<id>/report (where "See the notes", Today and History all lead), never
+  during a live interview, where a card would pull the student out of the room.
 */
-/** The interview on this page, if the page is one (/mock/<id>), and its status. */
+/** The interview on this page, if the page is one (/mock/<id>, or its notes at /mock/<id>/report), and its status. */
 function useInterviewOnPage() {
   const location = useLocation();
-  const sid = /^\/mock\/([0-9a-f-]{36})$/.exec(location.pathname)?.[1];
+  const match = /^\/mock\/([0-9a-f-]{36})(\/report)?$/.exec(location.pathname);
+  const sid = match?.[1];
+  const notes = !!match?.[2];
   const status = useQuery({
     queryKey: ["shell", "interview-status", sid],
     queryFn: () => api.get<{ status: string }>(`/v1/interviews/${sid}`),
     enabled: !!sid,
     refetchInterval: (query) => (query.state.data?.status === "ended" ? false : 5000),
   });
-  return { sid, status: status.data?.status };
+  return { sid, notes, status: status.data?.status };
 }
 
 function AfterInterviewNudge() {
@@ -376,15 +379,15 @@ function AfterInterviewNudge() {
 }
 
 /*
-  A room is live: an interview that has not ended (the room and its notes
-  share one path), a viva's room, or a group discussion. Rovix goes quiet
+  A room is live: an interview room that has not ended (its notes page at
+  /mock/<id>/report never is), a viva's room, or a group discussion. Rovix goes quiet
   there - a small still globe, no bubbles - because a card mid-answer pulls a
   student out of the room, and the room's own controls sit in that corner.
 */
 function useInRoom(): boolean {
   const location = useLocation();
-  const { sid, status } = useInterviewOnPage();
-  if (sid) return status !== "ended";
+  const { sid, notes, status } = useInterviewOnPage();
+  if (sid) return !notes && status !== "ended";
   if (/^\/viva\/[^/]+$/.test(location.pathname)) return !/^\/viva\/(new|progress)$/.test(location.pathname);
   return location.pathname === "/gd";
 }
