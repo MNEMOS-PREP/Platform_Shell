@@ -49,8 +49,10 @@ import { m02Routes } from "@ai/m02";
 import { m03Routes } from "@ai/m03";
 import { m04Routes, usePracticeConsent, useProfile } from "@ai/m04";
 import { MockTargetsContext, m06Routes, type MockTarget } from "@ai/m06";
+import { m10Routes } from "@ai/m10";
 import { m11Routes } from "@ai/m11";
 import { m13Routes } from "@ai/m13";
+import { m17Routes } from "@ai/m17";
 import { m15Routes } from "@ai/m15";
 import { NotesCounsel, m16Routes } from "@ai/m16";
 import { m20Routes } from "@ai/m20";
@@ -116,6 +118,8 @@ const STUDENT_NAV: FrameNavGroup[] = [
       { to: "/viva", label: "Viva practice", icon: "student" },
       // M07 (2026-11-04): write code, run it in the sandbox, get scored (pages/LiveCodingPage.tsx).
       { to: "/code", label: "Live coding", icon: "code" },
+      // M17: short spoken drills on the one habit that costs you most (pages from @ai/m17).
+      { to: "/coach", label: "Communication coach", icon: "quote", match: "/coach" },
     ],
   },
   {
@@ -143,6 +147,7 @@ const STUDENT_NAV: FrameNavGroup[] = [
     items: [
       COMPANIES,
       JD,
+      { to: "/oa", label: "Aptitude practice", icon: "listChecks", match: "/oa" },
       { to: "/resume", label: "Resume", icon: "document", match: "/resumes" },
       LIBRARY,
       { to: "/github", label: "GitHub projects", icon: "gitBranch" },
@@ -342,7 +347,7 @@ function AppCrashed() {
  * Derived by subtraction from core's registry, because the registry's own
  * `live` flags are stale — it still marks M01, M02 and M13 as unbuilt.
  */
-const BUILT = new Set(["M01", "M02", "M03", "M04", "M05", "M06", "M11", "M13", "M14", "M15", "M16", "M20"]);
+const BUILT = new Set(["M01", "M02", "M03", "M04", "M05", "M06", "M10", "M11", "M13", "M14", "M15", "M16", "M17", "M20"]);
 const PLACEHOLDERS = MODULES.filter((m) => !BUILT.has(m.id));
 
 /*
@@ -529,10 +534,12 @@ function App() {
         {m03Routes}
         {m04Routes}
         {m06Routes}
+        {m10Routes}
         {m11Routes}
         {m13Routes}
         {m15Routes}
         {m16Routes}
+        {m17Routes}
         {m20Routes}
 
         {PLACEHOLDERS.map((m) => (
