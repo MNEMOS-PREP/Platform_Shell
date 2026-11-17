@@ -40,8 +40,8 @@ import {
   type IconName,
   type Session,
 } from "@ai/core";
-import { useProfile } from "@ai/m04";
-import { useHistory } from "@ai/m06";
+import { useProfile, useProfilePhoto } from "@ai/m04";
+import { SelfPhotoContext, useHistory } from "@ai/m06";
 import { HostShellContext, type HostShell, type RailPayload } from "@ai/m15";
 import { openRovix, startTour } from "@ai/m21";
 
@@ -103,6 +103,40 @@ function activeItem(items: FrameNavItem[], pathname: string): FrameNavItem | und
 function useDisplayName(session: Session | null): string | undefined {
   const profile = useProfile(candidateIdOf(session));
   return profile.data?.display_name || session?.name;
+}
+
+/**
+ * The student's picture from Settings, as a URL, or null (2026-11-17). M04
+ * keeps it; the profile's `photo` digest says whether there is one, so a
+ * student without one costs no request at all.
+ */
+function useSelfPhoto(session: Session | null): string | null {
+  const candidate = candidateIdOf(session);
+  const profile = useProfile(candidate);
+  const photo = useProfilePhoto(candidate, profile.data?.photo || null);
+  return profile.data?.photo ? (photo.data ?? null) : null;
+}
+
+/** The student's picture where there is one; their initials where not. */
+function Avatar({
+  session,
+  name,
+  photo,
+  className,
+}: {
+  session: Session;
+  name?: string;
+  photo: string | null;
+  className: string;
+}) {
+  if (photo) {
+    return <img src={photo} alt="" className={`${className} object-cover`} />;
+  }
+  return (
+    <span aria-hidden className={`bg-brand-gradient grid place-items-center font-semibold text-white ${className}`}>
+      {initials(session, name)}
+    </span>
+  );
 }
 
 function initials(session: Session, name?: string): string {
@@ -195,6 +229,7 @@ function AccountCard() {
   const navigate = useNavigate();
   const location = useLocation();
   const name = useDisplayName(session);
+  const photo = useSelfPhoto(session);
   if (!session) return null;
   const label = name ?? ROLE_LABEL[session.role];
   const email = session.role === "student" ? readEmail() : null;
@@ -204,12 +239,7 @@ function AccountCard() {
   return (
     <div className="m-3 rounded-xl border border-rail-line bg-rail-hover p-3">
       <div className="flex items-center gap-3">
-        <span
-          aria-hidden
-          className="bg-brand-gradient grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-semibold text-white"
-        >
-          {initials(session, name)}
-        </span>
+        <Avatar session={session} name={name} photo={photo} className="h-9 w-9 shrink-0 rounded-full text-xs" />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-rail-ink">{label}</span>
           <span className="block truncate text-[0.6875rem] text-rail-ink-soft">
@@ -329,6 +359,7 @@ export function Frame({
   const sections = (rail?.sections ?? []).filter((section) => !platformPaths.has(section.to));
   const current = activeItem(items, location.pathname) ?? activeItem(OFF_MENU, location.pathname);
   const displayName = useDisplayName(session);
+  const selfPhoto = useSelfPhoto(session);
 
   // The tab says where you are (2026-10-16). Every page was "AI Interviewer"
   // in the tab strip, in Back's history menu, and in what a screen reader
@@ -617,16 +648,29 @@ export function Frame({
                 </button>
                 <span data-tour="corner" className="flex items-center gap-1.5">
                   {candidateIdOf(session) && <StreakChip />}
-                  <AccentButton />
+                  {/* On a phone the row has room for the picture or the
+                      colour picker, not both; colours are in Settings too. */}
+                  <span className="hidden sm:contents">
+                    <AccentButton />
+                  </span>
                   <ThemeToggle />
                 </span>
+                {/* Top-right, on every width (2026-11-17): the student's
+                    picture once they add one in Settings, their initials
+                    until then. It opens Settings, where the picture is set. */}
                 {session && (
                   <Link
-                    to="/settings"
+                    to="/settings#photo"
                     title={`Signed in as ${displayName ?? ROLE_LABEL[session.role]} — settings`}
-                    className="bg-brand-gradient ml-1 grid h-8 w-8 place-items-center rounded-full text-[0.6875rem] font-semibold text-white lg:hidden"
+                    aria-label={`Settings — signed in as ${displayName ?? ROLE_LABEL[session.role]}`}
+                    className="ml-1 shrink-0 rounded-full ring-2 ring-transparent transition hover:ring-brand-line"
                   >
-                    {initials(session, displayName)}
+                    <Avatar
+                      session={session}
+                      name={displayName}
+                      photo={selfPhoto}
+                      className="h-8 w-8 shrink-0 rounded-full text-[0.6875rem]"
+                    />
                   </Link>
                 )}
               </div>
@@ -640,7 +684,11 @@ export function Frame({
           >
             {/* Wide, but not edge-to-edge on an ultrawide - past about 1500px a
                 row of cards stops being scannable in one sweep. */}
-            <div className="mx-auto w-full max-w-[92rem]">{children}</div>
+            <div className="mx-auto w-full max-w-[92rem]">
+              {/* The picture for the module screens that show the student —
+                  M06's tile when the camera is off. */}
+              <SelfPhotoContext.Provider value={selfPhoto}>{children}</SelfPhotoContext.Provider>
+            </div>
           </main>
         </div>
       </div>
