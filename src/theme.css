@@ -57,9 +57,11 @@
 @source "../../Memory/Frontend/frontend_M04_Skill_Graph_Memory/src";
 @source "../../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src";
 @source "../../Live_Coding/ui/src";
+@source "../../Aptitude_OA_Engine/Frontend/frontend_M10_Aptitude_OA_Engine/src";
 @source "../../Voice_Engine/Frontend/frontend_M11_Voice_Engine/src";
 @source "../../Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src";
 @source "../../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src";
+@source "../../Communication_Coach/Frontend/frontend_M17_Communication_Coach/src";
 @source "../../Counselor/Frontend/frontend_M16_Counselor/src";
 @source "../../Course_Viva/Frontend/frontend_M20_Course_Viva/src";
 @source "../../Rovix/Frontend/frontend_M21_Rovix/src";

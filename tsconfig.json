@@ -22,10 +22,12 @@
       "@ai/m04": ["../Memory/Frontend/frontend_M04_Skill_Graph_Memory/src/index.ts"],
       "@ai/m06": ["../Mock_Interview_Engine/Frontend/frontend_M06_Mock_Interview_Engine/src/index.ts"],
       "@ai/m07": ["../Live_Coding/ui/src/index.ts"],
+      "@ai/m10": ["../Aptitude_OA_Engine/Frontend/frontend_M10_Aptitude_OA_Engine/src/index.ts"],
       "@ai/m11": ["../Voice_Engine/Frontend/frontend_M11_Voice_Engine/src/index.ts"],
       "@ai/m13": ["../Evaluation_Engine/Frontend/frontend_M13_Evaluation_Engine/src/index.ts"],
       "@ai/m15": ["../Final_Year_Project/Frontend/frontend_M15_Company_Guider/src/index.ts"],
       "@ai/m16": ["../Counselor/Frontend/frontend_M16_Counselor/src/index.ts"],
+      "@ai/m17": ["../Communication_Coach/Frontend/frontend_M17_Communication_Coach/src/index.ts"],
       "@ai/m20": ["../Course_Viva/Frontend/frontend_M20_Course_Viva/src/index.ts"],
       "@ai/m21": ["../Rovix/Frontend/frontend_M21_Rovix/src/index.ts"],
       "@ai/m22": ["../Follow_Your_Goal/Frontend/frontend_M22_Follow_Your_Goal/src/index.ts"]
