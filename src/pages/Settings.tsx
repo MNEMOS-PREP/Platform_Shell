@@ -32,6 +32,7 @@ import { SEMESTERS, defaultCourses, programmeLabel, semesterOf, yearForSemester 
 import { dailyReminderIcs, downloadIcs } from "../lib/goals";
 import { GOAL_OPTIONS, writeGoal } from "../lib/practice";
 import { CoursePicker } from "../ui/CoursePicker";
+import { PhotoSettings } from "../ui/PhotoSettings";
 import { DrivePicker } from "../ui/DrivePicker";
 import { RovixSettings } from "@ai/m21";
 
@@ -192,6 +193,22 @@ export function Settings() {
         <SkeletonRows label="Loading your settings" rows={4} className="mt-8" />
       ) : (
         <>
+          <Section
+            id="photo"
+            title="Your picture"
+            sub="Shown at the top right of every page, on your tile in mock interviews when your camera is off, and on resumes you tailor. Without one, your initials show."
+          >
+            <PhotoSettings
+              candidate={candidate}
+              initials={(name || session?.name || "You")
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((w) => w[0]!.toUpperCase())
+                .join("")}
+            />
+          </Section>
+
           <Section id="profile" title="Profile" sub="Used for your greeting and to set what the interviewer asks.">
             <form
               className="space-y-4"
