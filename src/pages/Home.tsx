@@ -38,6 +38,9 @@
  *   · 2026-11-13: a student with a career goal (M22) sees it after feedback
  *     and the deadline, before the skill graph: readiness and the next step.
  *     No goal, no card.
+ *   · 2026-11-18: the question bank (M06) — every question met, with the
+ *     answer to say, as `q_bank_discovered.pdf` — under the deadline, beside
+ *     the last interview: feedback, then what to revise. No question, no card.
  */
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type ReactNode } from "react";
@@ -73,6 +76,7 @@ import {
   useCohortStats,
   useHistory,
   useReport,
+  QuestionBankCard,
   weakest as weakestAnswer,
   type SessionSummary,
 } from "@ai/m06";
@@ -1372,7 +1376,10 @@ export function Home() {
               student's own courses, ahead of feedback on the last interview. */}
           <CoursesCard profile={profile.data} className="lg:col-span-3" />
           <LastInterviewCard sessions={sessions} className="lg:col-span-2" />
-          <CountdownCard profile={profile.data} />
+          <div className="space-y-5">
+            <CountdownCard profile={profile.data} />
+            <QuestionBankCard name={profile.data?.display_name || session?.name || undefined} />
+          </div>
           {/* 2026-11-13: progress toward the goals the student set (M22) —
               readiness and the next step, ahead of the whole skill graph. */}
           <GoalsTodayCard className="lg:col-span-3" />
