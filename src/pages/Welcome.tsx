@@ -38,9 +38,9 @@
  * they follow the student to any device.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 
-import { Icon, SkeletonRows, candidateIdOf, signIn, useSession } from "@ai/core";
+import { Icon, SkeletonRows, api, candidateIdOf, signIn, useSession } from "@ai/core";
 import {
   useCurricula,
   useCurriculum,
@@ -139,6 +139,8 @@ const field =
 
 /** The gentlest real start, and what Today's "Start my first interview" opens too. */
 const FIRST_INTERVIEW = { minutes: 15, mode: "practice" } as const;
+/** How long the last step waits for M22 to set the first goal before moving on without it. */
+const GOAL_WAIT_MS = 12_000;
 
 type StepKey = "you" | "courses" | "drives" | "rhythm" | "consent";
 
@@ -167,6 +169,8 @@ export function Welcome() {
 
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(false);
+  const [settingGoal, setSettingGoal] = useState(false);
+  const [firstGoal, setFirstGoal] = useState<{ id: string; by: string | null } | null>(null);
   const [declined, setDeclined] = useState(false);
   const [name, setName] = useState(session?.name && session.name !== "New student" ? session.name : "");
   const [role, setRole] = useState("");
@@ -242,38 +246,78 @@ export function Welcome() {
   const at = Math.min(step, steps.length - 1);
   const key = steps[at]!;
   const labels = steps.map((k) => STEP_LABEL[k]);
-  const next = () => setStep(at + 1);
 
   if (!candidate) return <Navigate to="/" replace />;
 
   const known = curricula.data?.find((c) => c.id === curriculumId);
 
+  /** Every answer given so far, as the profile holds it. */
+  const answers = () => ({
+    display_name: name.trim(),
+    target_role: role.trim(),
+    year: term === GRADUATED ? "Graduated" : yearForSemester(semester),
+    branch: known ? known.short : branch.trim(),
+    curriculum_id: known ? known.id : "",
+    ...(term === GRADUATED ? { semester: null } : semester !== null ? { semester } : {}),
+    courses: known && semester !== null ? courses : [],
+    companies,
+    drives,
+    weekly_goal: goal,
+    reminder_time: reminder,
+  });
+
+  /**
+   * Each step is saved as it is left (good_and_bads polish, 2026-11-22): a
+   * refresh halfway used to lose every answer, because only the last step
+   * saved. M04 keeps the fields it is not sent and never un-stamps a welcome,
+   * so a draft is safe; coming back resumes from it (the seeding above).
+   */
+  const next = () => {
+    save.mutate(answers());
+    setStep(at + 1);
+  };
+
   /** Save every answer, stamp the welcome as done, then show the last screen. */
   const saveAll = () =>
     save.mutate(
+      { ...answers(), onboarded: true },
       {
-        display_name: name.trim(),
-        target_role: role.trim(),
-        year: term === GRADUATED ? "Graduated" : yearForSemester(semester),
-        branch: known ? known.short : branch.trim(),
-        curriculum_id: known ? known.id : "",
-        ...(term === GRADUATED ? { semester: null } : semester !== null ? { semester } : {}),
-        courses: known && semester !== null ? courses : [],
-        companies,
-        drives,
-        weekly_goal: goal,
-        reminder_time: reminder,
-        onboarded: true,
-      },
-      {
-        onSuccess: () => {
+        onSuccess: async () => {
           writeGoal(goal);
           // The account card and greeting read the session's name.
           if (session && name.trim()) signIn({ ...session, name: name.trim() });
+          // Before the last screen, so the first interview (a mixed one) is
+          // already drawn from the goal's tracks.
+          setSettingGoal(true);
+          await Promise.race([makeFirstGoal(), new Promise((r) => window.setTimeout(r, GOAL_WAIT_MS))]);
+          setSettingGoal(false);
           setDone(true);
         },
       },
     );
+
+  /**
+   * The role named on the first step becomes the student's first goal (M22),
+   * with the nearest drive as its deadline (good_and_bads #6, 2026-11-22).
+   * Until then the drive and role steered nothing: a goal set on /goals shapes
+   * every mixed interview, and the answers given here shaped none. Only when
+   * there is no goal yet; M22 refuses a role it cannot read, and M22 down is
+   * not an error here — Your goals asks for it then.
+   */
+  const makeFirstGoal = async (): Promise<void> => {
+    const text = role.trim();
+    if (!text) return;
+    try {
+      const overview = await api.get<{ goals: unknown[] }>("/v1/goals");
+      if (overview.goals.length > 0) return;
+      const drive = nextDrive(drives);
+      const deadline = drive && daysUntil(drive.date) > 0 ? drive.date : undefined;
+      const made = await api.post<{ goal_id: string }>("/v1/goals", deadline ? { text, deadline } : { text });
+      setFirstGoal({ id: made.goal_id, by: deadline ? drive!.label : null });
+    } catch {
+      /* not read, or M22 not running: nothing is set, nothing is claimed */
+    }
+  };
 
   const startFirst = () =>
     create.mutate(
@@ -306,6 +350,17 @@ export function Welcome() {
             <p className="mt-3 text-sm text-ink-soft">
               Today also has a practice for each of your {practice.length} course
               {practice.length === 1 ? "" : "s"}, on what its syllabus teaches.
+            </p>
+          )}
+          {firstGoal && (
+            <p className="mt-3 text-sm text-ink-soft">
+              Your first goal is set from what you said you're preparing for
+              {firstGoal.by ? <>, due by <span className="font-medium text-ink">{firstGoal.by}</span></> : null}. Every
+              mixed interview now draws on it.{" "}
+              <Link to={`/goals/${firstGoal.id}`} className="font-medium text-brand hover:underline">
+                See or change it
+              </Link>
+              .
             </p>
           )}
           {drive && (
@@ -507,8 +562,8 @@ export function Welcome() {
           {askConsent ? (
             <Next onClick={next}>Next</Next>
           ) : (
-            <Next onClick={saveAll} disabled={save.isPending || profile.isLoading}>
-              {save.isPending ? "Saving…" : "Finish"}
+            <Next onClick={saveAll} disabled={save.isPending || settingGoal || profile.isLoading}>
+              {save.isPending || settingGoal ? "Saving…" : "Finish"}
             </Next>
           )}
         </div>
@@ -554,9 +609,9 @@ export function Welcome() {
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <Next
           onClick={() => grant.mutate(undefined, { onSuccess: saveAll })}
-          disabled={grant.isPending || save.isPending}
+          disabled={grant.isPending || save.isPending || settingGoal}
         >
-          {grant.isPending || save.isPending ? "Saving…" : "Yes, save my progress"}
+          {grant.isPending || save.isPending || settingGoal ? "Saving…" : "Yes, save my progress"}
         </Next>
         <Skip
           onClick={() => {

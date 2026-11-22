@@ -194,8 +194,13 @@ const FIRST_INTERVIEW = "/mock?minutes=15&mode=practice";
 
 /* ────────────────────────────── the cards ─────────────────────────────── */
 
-/** A drive two weeks out or closer outranks the skill graph's suggestion. */
-const DRIVE_FIRST_WITHIN_DAYS = 14;
+/**
+ * A drive a month out or closer outranks the skill graph's suggestion. Was 14
+ * days: a student who told us "Amazon in 21 days" was still sent to a generic
+ * first step (good_and_bads #6, 2026-11-22). A month is how far ahead students
+ * start preparing for a named drive.
+ */
+const DRIVE_FIRST_WITHIN_DAYS = 30;
 
 interface Focus {
   eyebrow: string;

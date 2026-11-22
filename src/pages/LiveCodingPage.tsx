@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { Button, EmptyState, ErrorNote, PageHeader, SkeletonRows } from "@ai/core";
+import { Button, EmptyState, ErrorNote, PageHeader, SkeletonRows, sessionHeaders } from "@ai/core";
 import { LiveCoding, listProblems, openRemoteRound, type ProblemSummary, type RemoteRound, type SubmitResult } from "@ai/m07";
 
 type Report = {
@@ -95,7 +95,12 @@ export function LiveCodingPage() {
     setResult(null);
     if (!problemId) return;
     let alive = true;
-    openRemoteRound("", problemId)
+    // Signed in, so a submitted round lands on the skill graph: M07 keeps the
+    // student on the round and records it in M04 (good_and_bads #17, 2026-11-22).
+    // Every call of the round carries it; M07 reads it once, when the round opens.
+    const signedIn: typeof fetch = (input, init) =>
+      fetch(input, { ...init, headers: { ...(init?.headers as Record<string, string> | undefined), ...sessionHeaders() } });
+    openRemoteRound("", problemId, "python", signedIn)
       .then((r) => alive && setRound(r))
       .catch((e: Error) => alive && setError(e.message));
     return () => {

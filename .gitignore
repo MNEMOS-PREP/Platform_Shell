@@ -3,3 +3,5 @@ dist/
 .vite/
 .shell.log
 .shell.err.log
+# Sign-in codes delivered while no mail transport is set (server/auth.ts).
+.run/

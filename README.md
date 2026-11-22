@@ -78,6 +78,40 @@ are handled:
 
 ---
 
+## Sign-in that proves who is signing in
+
+By default (`AUTH_MODE=demo`) sign-in is what it always was: an email, with
+nothing behind it, and the browser's `X-Role` / `X-Candidate-Id` believed by
+every module. Fine for a laptop demo; anyone who types another student's email
+sees that student's interviews, answers and skill graph.
+
+`AUTH_MODE=email` closes that at the one door a browser comes through
+(`server/auth.ts`, 2026-11-22). Every backend listens on 127.0.0.1, so the
+shell's proxy is the only way in:
+
+- **Sign-in** emails a six-digit code (ten minutes, five tries, one request per
+  30 s); the right code sets a signed, HttpOnly session cookie (12 hours).
+- **Every proxied request and WebSocket** has the identity headers it arrived
+  with removed, and the cookie's identity put in their place. No cookie, no
+  identity: the module sees nobody.
+- **Staff** come only from `AUTH_STAFF="tpo@college.edu:placement_officer,ops@college.edu:admin"`.
+  Anyone else who proves an email is a student, with the same id the open
+  sign-in gives them, so their history carries over.
+
+| Variable | What it does |
+|---|---|
+| `AUTH_MODE` | `email` turns the door on; anything else is the open demo sign-in |
+| `AUTH_STAFF` | `email:role` pairs for staff (`placement_officer`, `reviewer`, `admin`) |
+| `AUTH_SECRET` | signs the cookie; unset, a new one each start (everyone signs in again after a restart) |
+
+**Before a real pilot:** codes are delivered to the server's console and
+`.run/auth_outbox.log` until a mail transport is wired into `deliverToOutbox`
+(the college SMTP, or SSO in place of codes). Serve over https and add `Secure`
+to the cookie. Keep every backend bound to 127.0.0.1: a module port exposed on
+the network is a door around this one.
+
+---
+
 ## Routes
 
 | Path | Module | |

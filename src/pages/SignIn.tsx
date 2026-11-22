@@ -17,7 +17,7 @@
  * lands (the master plan recommends college SSO), it feeds `signIn` a verified
  * subject and this screen loses its form, not its job.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
@@ -77,6 +77,23 @@ export function SignIn() {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 2026-11-22 (good_and_bads #14): with AUTH_MODE=email the shell proves the
+  // address with a code before anyone is signed in (server/auth.ts), and the
+  // identity every module sees comes from its cookie. Demo mode is as before.
+  const [mode, setMode] = useState<"demo" | "email" | null>(null);
+  const [codeSent, setCodeSent] = useState(false);
+  const [code, setCode] = useState("");
+  useEffect(() => {
+    let alive = true;
+    fetch("/auth/me")
+      .then((r) => (r.ok ? r.json() : { mode: "demo" }))
+      .then((body: { mode?: string }) => alive && setMode(body.mode === "email" ? "email" : "demo"))
+      .catch(() => alive && setMode("demo"));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const proving = mode === "email";
 
   // Back to where the student was headed, or Today.
   const from = (location.state as { from?: string } | null)?.from;
@@ -93,12 +110,40 @@ export function SignIn() {
     }
     setBusy(true);
     setError(null);
+    if (proving) {
+      await proveEmail();
+      return;
+    }
     try {
       const subject = await subjectForEmail(email);
       const display = name.trim() || firstName(normaliseEmail(email).split("@")[0]!.replace(/[._-]+/g, " ")) || undefined;
       go({ role: "student", subject, name: display }, email);
     } catch {
       setError("This browser can't sign in here — open the platform on localhost or over https.");
+      setBusy(false);
+    }
+  };
+
+  /** Email mode: send a code, then check it. The session comes back from the
+   *  server, which also set the cookie the proxy reads. */
+  const proveEmail = async () => {
+    const post = (path: string, body: unknown) =>
+      fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    try {
+      if (!codeSent) {
+        const sent = await post("/auth/code", { email });
+        if (!sent.ok) throw new Error(((await sent.json()) as { detail?: string }).detail ?? "The code could not be sent.");
+        setCodeSent(true);
+        setBusy(false);
+        return;
+      }
+      const checked = await post("/auth/verify", { email, code });
+      const body = (await checked.json()) as { detail?: string; session?: { role: Session["role"]; subject: string } };
+      if (!checked.ok || !body.session) throw new Error(body.detail ?? "That code isn't right.");
+      const display = name.trim() || firstName(normaliseEmail(email).split("@")[0]!.replace(/[._-]+/g, " ")) || undefined;
+      go({ role: body.session.role, subject: body.session.subject, name: display }, email);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Sign-in failed.");
       setBusy(false);
     }
   };
@@ -169,6 +214,20 @@ export function SignIn() {
             className="mt-1.5 h-11 w-full rounded-lg border border-line bg-surface px-3 text-[0.9375rem] text-ink outline-none focus:border-brand"
           />
         </label>
+        {proving && codeSent && (
+          <label className="block text-sm font-medium text-ink">
+            The code we emailed you
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+              placeholder="6 digits"
+              className="mt-1.5 h-11 w-full rounded-lg border border-line bg-surface px-3 font-mono text-[0.9375rem] tracking-[0.3em] text-ink outline-none focus:border-brand"
+            />
+          </label>
+        )}
         {error && (
           <p role="alert" className="text-sm text-contested">
             {error}
@@ -176,17 +235,20 @@ export function SignIn() {
         )}
         <button
           type="submit"
-          disabled={busy || !email.trim()}
+          disabled={busy || !email.trim() || (proving && codeSent && code.length !== 6)}
           className="bg-brand-gradient flex h-11 w-full items-center justify-center gap-2 rounded-lg text-sm font-semibold text-white shadow-glow disabled:opacity-50"
         >
-          {busy ? "Signing in…" : "Continue"}
+          {busy ? "Signing in…" : proving && !codeSent ? "Email me a code" : "Continue"}
           <Icon name="arrowRight" size={16} />
         </button>
         <p className="text-xs leading-relaxed text-ink-faint">
-          The same email brings back your interviews and skill graph on any device.
+          {proving
+            ? "We email a six-digit code to prove it's you. It works once, for ten minutes."
+            : "The same email brings back your interviews and skill graph on any device."}
         </p>
       </form>
 
+      {!proving && (
       <button
         type="button"
         onClick={() => go({ role: "student", subject: SEEDED_CANDIDATE_ID, name: "Demo student" })}
@@ -201,8 +263,9 @@ export function SignIn() {
         </span>
         <Icon name="arrowRight" size={15} />
       </button>
+      )}
 
-      {staffMode && (
+      {staffMode && !proving && (
         <section className="mt-10 border-t border-line pt-6" aria-labelledby="staff-heading">
           <h2 id="staff-heading" className="text-sm font-semibold text-ink">
             Staff and demo identities
@@ -236,7 +299,7 @@ export function SignIn() {
         </section>
       )}
 
-      {!staffMode && !current && <StaffLink className="mt-6 !text-left" />}
+      {!staffMode && !current && !proving && <StaffLink className="mt-6 !text-left" />}
     </>
   );
 

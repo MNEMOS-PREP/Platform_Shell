@@ -148,7 +148,7 @@ export function Roadmap({ progress, onChange, programme, onProgramme, onPractise
           <Icon name="gitBranch" size={26} />
         </span>
         <div className="rm-ht">
-          <h2>DSA roadmap</h2>
+          <h2>DSA route map</h2>
           <p>A structured path to master data structures and algorithms, mapped to your syllabus.</p>
         </div>
         <div className="rm-hp">

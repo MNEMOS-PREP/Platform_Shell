@@ -47,6 +47,7 @@ import { openRovix, startTour } from "@ai/m21";
 
 import { readEmail, writeEmail } from "../lib/account";
 import { currentStreak, practiceDays } from "../lib/practice";
+import { readOpened, readVisited, rememberOpened, rememberVisit, shownWhileFolded } from "../lib/railFold";
 import { toggleTheme, useTheme } from "../lib/theme";
 import { AccentButton } from "./AccentPicker";
 import { CommandPalette, type PaletteItem } from "./CommandPalette";
@@ -314,11 +315,18 @@ function RailLink({ item, active, pill }: { item: FrameNavItem; active: boolean;
 export function Frame({
   groups,
   tabs,
+  focus = false,
   children,
 }: {
   groups: FrameNavGroup[];
   /** The phone's tab bar: the four places this person goes most, then More. */
   tabs: FrameNavItem[];
+  /**
+   * A live room (an interview, a viva, a group discussion): no rail and no tab
+   * bar, as on a real call. Twenty links beside the question broke the room's
+   * own spell (good_and_bads #9, 2026-11-22). The logo stays, as the way home.
+   */
+  focus?: boolean;
   children: ReactNode;
 }) {
   const location = useLocation();
@@ -358,6 +366,22 @@ export function Frame({
   const platformPaths = new Set(["/", ...items.map((item) => item.to)]);
   const sections = (rail?.sections ?? []).filter((section) => !platformPaths.has(section.to));
   const current = activeItem(items, location.pathname) ?? activeItem(OFF_MENU, location.pathname);
+
+  // #22: the rail folds what this student has not opened yet (lib/railFold.ts).
+  const [visited, setVisited] = useState<Set<string>>(readVisited);
+  const [opened, setOpened] = useState<Set<string>>(readOpened);
+  useEffect(() => {
+    if (current?.to) setVisited(rememberVisit(current.to));
+  }, [current?.to]);
+  const toggleGroup = useCallback((label: string) => {
+    setOpened((was) => {
+      const next = new Set(was);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      rememberOpened(next);
+      return next;
+    });
+  }, []);
   const displayName = useDisplayName(session);
   const selfPhoto = useSelfPhoto(session);
 
@@ -522,8 +546,9 @@ export function Frame({
   return (
     <HostShellContext.Provider value={host}>
       <TopProgress />
-      <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+      <div className={focus ? "min-h-dvh" : "min-h-dvh lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]"}>
         {/* ---------- rail ---------- */}
+        {!focus && (
         <aside className="sticky top-0 hidden h-dvh flex-col border-r border-rail-line bg-rail lg:flex">
           <div className="px-4 pt-5 pb-4">
             <Logo />
@@ -532,25 +557,42 @@ export function Frame({
           {/* `data-tour`: where Rovix's tour points (M21). Named here rather
               than found by class, so restyling the frame never loses a step. */}
           <nav aria-label="Platform" data-tour="rail" className="flex-1 space-y-5 overflow-y-auto px-3 pt-2 pb-4">
-            {groups.map((group) => (
-              <div key={group.label || "main"}>
-                {group.label && (
-                  <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft uppercase">
-                    {group.label}
-                  </p>
-                )}
-                <div className="space-y-0.5">
-                  {group.items.map((item) => (
-                    <RailLink
-                      key={item.to}
-                      item={item}
-                      active={item.to === current?.to}
-                      pill={item.to === current?.to}
-                    />
-                  ))}
+            {groups.map((group) => {
+              // #22: a labelled group shows its first two links, what this
+              // student has opened, and where they are; the rest fold.
+              const fold = group.label ? shownWhileFolded(group.items, visited, current?.to) : null;
+              const open = !fold || fold.folded === 0 || opened.has(group.label);
+              const items = open ? group.items : fold.shown;
+              return (
+                <div key={group.label || "main"}>
+                  {group.label && (
+                    <p className="px-3 pb-1.5 text-[0.6875rem] font-medium tracking-wide text-rail-ink-soft uppercase">
+                      {group.label}
+                    </p>
+                  )}
+                  <div className="space-y-0.5">
+                    {items.map((item) => (
+                      <RailLink
+                        key={item.to}
+                        item={item}
+                        active={item.to === current?.to}
+                        pill={item.to === current?.to}
+                      />
+                    ))}
+                    {fold && fold.folded > 0 && (
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() => toggleGroup(group.label)}
+                        className="flex h-8 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rail-ink-soft hover:bg-rail-hover hover:text-rail-ink"
+                      >
+                        {open ? "Fewer" : `${fold.folded} more`}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* ---------- what the current section published ---------- */}
             {(rail?.context || sections.length > 0) && (
@@ -611,12 +653,13 @@ export function Frame({
 
           <AccountCard />
         </aside>
+        )}
 
         {/* ---------- content ---------- */}
         <div className="flex min-w-0 flex-col">
           <header className="sticky top-0 z-30 border-b border-line/70 bg-canvas/75 backdrop-blur-xl">
             <div className="flex h-14 items-center gap-3 px-4 md:px-8">
-              <Link to="/" className="flex items-center gap-2 lg:hidden" aria-label="Home">
+              <Link to="/" className={`flex items-center gap-2 ${focus ? "" : "lg:hidden"}`} aria-label="Home">
                 <span className="bg-brand-gradient grid h-8 w-8 place-items-center rounded-lg text-white">
                   <Icon name="sparkles" size={16} />
                 </span>
@@ -693,6 +736,7 @@ export function Frame({
         </div>
       </div>
       {/* ---------- phone: a tab bar in thumb reach ---------- */}
+      {!focus && (
       <nav
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
@@ -727,6 +771,7 @@ export function Frame({
           </button>
         </div>
       </nav>
+      )}
       {more && (
         <div className="scrim-in fixed inset-0 z-50 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMore(false)}>
           <div
