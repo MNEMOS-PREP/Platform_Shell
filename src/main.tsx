@@ -141,9 +141,10 @@ const STUDENT_NAV: FrameNavGroup[] = [
       { to: "/mock/library", label: "Question library", icon: "star" },
       { to: "/skills", label: "Skill graph", icon: "graph" },
       // M07 (2026-11-03): the whole of DSA as a route map, mapped to the student's syllabus.
-      { to: "/roadmap", label: "DSA roadmap", icon: "code" },
-      // M20: how a student answers and speaks across their vivas (2026-10-29).
-      { to: "/viva/progress", label: "Viva progress", icon: "chart" },
+      // "Route map", not "roadmap": the goal's Roadmap tab is the plan (#22).
+      { to: "/roadmap", label: "DSA route map", icon: "code" },
+      // M20's progress page (/viva/progress) is reached from Viva practice:
+      // one viva entry, not two (good_and_bads #22, 2026-11-22).
       { to: "/history", label: "History", icon: "clock" },
     ],
   },
@@ -506,7 +507,7 @@ function App() {
 
   return (
     <>
-    <Frame groups={nav} tabs={staffRole ? STAFF_TABS : STUDENT_TABS}>
+    <Frame groups={nav} tabs={staffRole ? STAFF_TABS : STUDENT_TABS} focus={inRoom}>
       <MockTargetsContext.Provider value={targets}>
       <ScreenBoundary key={`${who}${location.pathname}`}>
       {staffRole && isStudentOnly(location.pathname) ? (

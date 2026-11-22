@@ -58,10 +58,20 @@ export function courseIndex(curriculum: Curriculum | undefined): Map<string, Cou
   return index;
 }
 
-/** What a semester starts ticked with: every course it lists. Electives are
- *  chosen, never defaulted — a guessed elective is a wrong one. */
-export function defaultCourses(semester: Semester | undefined): string[] {
+/** Every course a semester lists (its own, as against an elective). */
+export function semesterCourses(semester: Semester | undefined): string[] {
   return semester ? semester.courses.map((c) => c.code) : [];
+}
+
+/** What a semester starts ticked with: the courses it lists that teach
+ *  something an interview asks — the ones that become a practice on Today and
+ *  steer a mixed interview. A course that maps to no interview concept (Indian
+ *  Constitution, Soft Skills) starts unticked, rather than ticked and silently
+ *  doing nothing (good_and_bads polish, 2026-11-22); the student can still tick
+ *  it. Decided by the curriculum's own concept links, not a list of titles.
+ *  Electives are chosen, never defaulted — a guessed elective is a wrong one. */
+export function defaultCourses(semester: Semester | undefined): string[] {
+  return semester ? semester.courses.filter((c) => c.concepts.length > 0).map((c) => c.code) : [];
 }
 
 /** The professional-elective slots a semester has ("Professional Elective I"). */
@@ -71,7 +81,7 @@ export function electiveSlots(semester: Semester | undefined): string[] {
 
 /** Which of a saved selection are electives, in slot order. */
 export function chosenElectives(semester: Semester | undefined, selected: readonly string[]): string[] {
-  const own = new Set(defaultCourses(semester));
+  const own = new Set(semesterCourses(semester));
   return selected.filter((code) => !own.has(code));
 }
 

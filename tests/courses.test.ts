@@ -67,10 +67,11 @@ check("semesters 1-2 are first year, 7-8 final", [1, 2, 3, 5, 6, 7, 8].map(yearF
   "Final year",
 ]);
 check("no semester, no year", yearForSemester(null), "");
-check("a semester starts with every course it lists ticked", defaultCourses(semesterOf(curriculum, 3)), [
+check("a semester starts with the courses an interview asks about ticked", defaultCourses(semesterOf(curriculum, 3)), [
   "22AIE202",
-  "19SSK211",
 ]);
+check("a course with no interview concept starts unticked", defaultCourses(semesterOf(curriculum, 3)).includes("19SSK211"), false);
+check("a ticked own course is never taken for an elective", chosenElectives(semesterOf(curriculum, 3), ["22AIE202", "19SSK211"]), []);
 check("free slots are not elective pickers", electiveSlots(semesterOf(curriculum, 3)), []);
 check("professional slots are", electiveSlots(semesterOf(curriculum, 5)), ["Professional Elective 1"]);
 check(

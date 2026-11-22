@@ -48,6 +48,15 @@ function SessionAnswers({ s }: { s: SessionSummary }) {
                 <span className="min-w-0 flex-1 basis-72">
                   <span className="line-clamp-2 text-sm text-ink">{q.question}</span>
                   {name && <span className="mt-0.5 block text-xs text-ink-faint capitalize">{name}</span>}
+                  {/* The badge is the interview's judgement; whether it moved the
+                      skill graph is a separate fact. "Correct" here beside "not
+                      yet tested" on the graph read as a contradiction until the
+                      reason was said (good_and_bads polish, 2026-11-22). */}
+                  {!q.scored && q.not_scored_reason && (
+                    <span className="mt-0.5 block text-xs text-ink-faint">
+                      Not on your skill graph. {q.not_scored_reason}
+                    </span>
+                  )}
                 </span>
                 {q.status ? (
                   <StatusBadge status={q.status} label={q.status_label} />

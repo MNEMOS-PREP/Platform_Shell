@@ -6,6 +6,23 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 
+import {
+  COOKIE,
+  CodeBook,
+  IDENTITY_HEADERS,
+  SESSION_TTL_S,
+  authMode,
+  authSecret,
+  cookieValue,
+  deliverToOutbox,
+  identityFor,
+  identityOf,
+  sign,
+  staffList,
+  verify,
+} from "./server/auth";
+import { proxyRoute } from "./src/lib/proxyRoute";
+
 /**
  * The platform shell — PORTS.txt reserves :5173 for "every built module UI
  * mounted".
@@ -21,7 +38,9 @@ import { defineConfig, type Plugin } from "vite";
  *
  * 2. Every module's `/v1` prefixes are DISJOINT, verified against the seven
  *    live openapi.json documents. That is what lets one proxy table stand in for a
- *    gateway: a request is routed by the noun it asks for.
+ *    gateway: a request is routed by the noun it asks for. Disjoint NOUNS, that
+ *    is: a plain Vite key is a prefix, and `coding` took `coding-profiles`. The
+ *    keys are anchored since 2026-11-22 (src/lib/proxyRoute.ts, tests/proxy.test.ts).
  */
 const here = dirname(fileURLToPath(import.meta.url));
 const sibling = (p: string) => resolve(here, "..", p);
@@ -102,7 +121,10 @@ const OWNER: Record<string, Mod> = {
   doors: "m02",
   jds: "m02",
   performance: "m02",
-  // M03: /v1/repos/... is a repository analysis, /v1/github/... the optional GitHub sign-in.
+  // M03: /v1/repos/... is a repository analysis, /v1/github/... the optional GitHub sign-in,
+  // /v1/coding-profiles/... the Codeforces / LeetCode / CodeChef handles. Until 2026-11-22 the
+  // last was missing, and `coding` (M07's) answered it: a student could not link a profile.
+  "coding-profiles": "m03",
   github: "m03",
   repos: "m03",
   candidates: "m04",
@@ -189,8 +211,9 @@ if (unscanned.length) {
 }
 
 const proxy: Record<string, unknown> = {};
+// Anchored, not prefix keys (src/lib/proxyRoute.ts): `coding` once took `coding-profiles`.
 for (const [noun, mod] of Object.entries(OWNER)) {
-  proxy[`/v1/${noun}`] = { target: `http://127.0.0.1:${API[mod]}`, changeOrigin: true };
+  proxy[proxyRoute(noun)] = { target: `http://127.0.0.1:${API[mod]}`, changeOrigin: true };
 }
 for (const [mod, port] of Object.entries(API)) {
   proxy[`/sys/${mod}`] = {
@@ -252,6 +275,112 @@ const SCREEN_OWNER: Record<string, Mod> = {
   goals: "m22",
 };
 
+/*
+  The door (good_and_bads #14, 2026-11-22; server/auth.ts). With AUTH_MODE=email
+  a student proves their address with a six-digit code, and from then on the
+  identity every module sees comes from the shell's signed cookie, never from
+  the browser: each proxied request (and WebSocket) has the identity headers it
+  arrived with removed and the cookie's put in their place. Every backend
+  listens on 127.0.0.1, so this proxy is the only way in. AUTH_MODE=demo, the
+  default, is the open sign-in it always was.
+*/
+const AUTH = authMode();
+const AUTH_SECRET = authSecret();
+const STAFF = staffList(process.env.AUTH_STAFF);
+const codes = new CodeBook(AUTH_SECRET);
+const deliver = deliverToOutbox(resolve(here, ".run", "auth_outbox.log"));
+
+type ProxyEntry = Record<string, unknown> & { configure?: (proxy: any, options: unknown) => void };
+type HeaderTarget = { removeHeader(name: string): void; setHeader(name: string, value: string): void };
+
+function fromTheCookie(target: HeaderTarget, cookie: string | undefined): void {
+  for (const name of IDENTITY_HEADERS) target.removeHeader(name);
+  for (const [name, value] of Object.entries(identityFor(cookie, AUTH_SECRET))) target.setHeader(name, value);
+}
+
+function guarded(entry: ProxyEntry): ProxyEntry {
+  const before = entry.configure;
+  return {
+    ...entry,
+    configure: (proxy, options) => {
+      before?.(proxy, options);
+      proxy.on("proxyReq", (out: HeaderTarget, req: { headers: Record<string, string | undefined> }) =>
+        fromTheCookie(out, req.headers.cookie),
+      );
+      proxy.on("proxyReqWs", (out: HeaderTarget, req: { headers: Record<string, string | undefined> }) =>
+        fromTheCookie(out, req.headers.cookie),
+      );
+    },
+  };
+}
+
+if (AUTH === "email") {
+  for (const key of Object.keys(proxy)) proxy[key] = guarded(proxy[key] as ProxyEntry);
+}
+
+function readJson(req: NodeJS.ReadableStream): Promise<Record<string, unknown>> {
+  return new Promise((done) => {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+      if (raw.length > 4096) raw = "";
+    });
+    req.on("end", () => {
+      try {
+        done(JSON.parse(raw || "{}"));
+      } catch {
+        done({});
+      }
+    });
+  });
+}
+
+const signInDoor: Plugin = {
+  name: "sign-in-door",
+  configureServer(server) {
+    server.middlewares.use(async (req, res, next) => {
+      const path = (req.url ?? "").split("?")[0];
+      if (!path.startsWith("/auth/")) return next();
+      const send = (status: number, body: unknown, cookie?: string) => {
+        res.statusCode = status;
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("Cache-Control", "no-store");
+        if (cookie) res.setHeader("Set-Cookie", cookie);
+        res.end(JSON.stringify(body));
+      };
+      const cookie = (value: string, maxAge: number) =>
+        `${COOKIE}=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}`;
+      if (req.method === "GET" && path === "/auth/me") {
+        const who = verify(cookieValue(req.headers.cookie), AUTH_SECRET);
+        return send(200, { mode: AUTH, session: who && { role: who.role, subject: who.subject, email: who.email } });
+      }
+      if (req.method === "POST" && path === "/auth/signout") return send(200, { signed_out: true }, cookie("", 0));
+      if (AUTH !== "email") return send(404, { detail: "Sign-in codes are off (AUTH_MODE=demo)." });
+      const body = await readJson(req);
+      const email = String(body.email ?? "");
+      if (req.method === "POST" && path === "/auth/code") {
+        const out = codes.issue(email);
+        if ("code" in out) {
+          deliver(email, out.code);
+          return send(202, { sent: true });
+        }
+        return send(out.status, { detail: out.message });
+      }
+      if (req.method === "POST" && path === "/auth/verify") {
+        const checked = codes.check(email, String(body.code ?? ""));
+        if (!checked.ok) return send(checked.status, { detail: checked.message });
+        const who = identityOf(email, STAFF);
+        return send(
+          200,
+          { session: { role: who.role, subject: who.subject, email: who.email } },
+          cookie(sign(who, AUTH_SECRET), SESSION_TTL_S),
+        );
+      }
+      return send(404, { detail: "No such sign-in step." });
+    });
+  },
+};
+
 const depsByScreen: Plugin = {
   name: "deps-by-screen",
   configureServer(server) {
@@ -272,7 +401,7 @@ const depsByScreen: Plugin = {
 };
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), depsByScreen],
+  plugins: [react(), tailwindcss(), signInDoor, depsByScreen],
   resolve: {
     /*
       Every module repo has its own node_modules with its own React. Without
